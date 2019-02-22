@@ -8,7 +8,7 @@ CHUNKS_TO_PROCESS = 5
 class Segmentation():
 
 	def __init__(self, binary):
-		self.binary = binary
+		self.binary = binary.copy()
 		self.primes = [] 
 		self.sieve(int(1e4))
 
@@ -195,7 +195,7 @@ class Segmentation():
 
 						if not is_component_above:
 							new_row = tl_y
-							line.min_row_position = max(new_row, line.min_row_position)
+							line.min_row_position = min(new_row, line.min_row_position)
 						else:
 							new_row = br_y
 							line.max_row_position = max(new_row, line.max_row_position)
@@ -246,7 +246,7 @@ class Segmentation():
 		return prob_above < prob_below
 
 	def get_regions(self):
-		return [r.region for r in self.line_regions]
+		return [r.region for r in self.line_regions] if len(self.line_regions) > 0 else [self.binary]
 
 class Region():
 
@@ -269,8 +269,6 @@ class Region():
 
 		ret = np.sum(point * covariance_inv * point_transpose)		
 		ret *= np.sqrt(np.linalg.det(self.covariance * 2 * np.pi))
-
-		# print(ret)
 
 		return int(ret)
 

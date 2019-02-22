@@ -3,7 +3,7 @@ import numpy as np
 
 
 def rects(path, img, contours):
-	drawing = cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+	drawing = cv.cvtColor(img.copy(), cv.COLOR_GRAY2BGR)
 
 	for (startX, startY, endX, endY) in contours:
 		cv.rectangle(drawing, (startX, startY),
@@ -36,10 +36,10 @@ def chunks_histogram(path, chunks):
 def image_with_lines(path, img, initial_lines):
 	image = img.copy()
 
-	for i in range(len(initial_lines)):
+	for line in initial_lines:
 		last_row = -1
 
-		for x, y in initial_lines[i].points:
+		for x, y in line.points:
 			image[x, y] = 0
 
 			if (last_row != -1) and (x != last_row):
@@ -49,6 +49,6 @@ def image_with_lines(path, img, initial_lines):
 
 	cv.imwrite(path, image)
 
-def lines(path, img, lines):
+def lines(path, lines):
 	for index, line in enumerate(lines):
 		cv.imwrite(path.replace("#", str(index+1)), line)
