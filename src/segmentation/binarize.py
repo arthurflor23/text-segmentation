@@ -14,15 +14,13 @@ nfns = [
     lambda x: np.roll(np.roll(x, -1, axis=1), -1, axis=0)
 ]
 
-def su_plus(im):
-    _, otsu_ocimg = cv.threshold(im.img, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
-    su_ocimg = su(im)
+def su_plus(img):
+    _, otsu_ocimg = cv.threshold(img, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+    su_ocimg = su(img)
 
     contours, _ = cv.findContours(otsu_ocimg, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
 
     for contour in contours:
-        # epsilon = 0.001 * cv.arcLength(contour, True)
-        # approx = cv.approxPolyDP(contour, epsilon, True)
         approx = cv.convexHull(contour)
         cv.drawContours(otsu_ocimg, [approx], -1, (0, 255, 0), 1)
 
@@ -32,24 +30,24 @@ def su_plus(im):
 
     R = (otsu_ocimg + (su_ocimg & cv.bitwise_not(im_floodfill)))
     
-    mask = np.ones((3, 3), np.uint8)
-    R = cv.erode(R, mask, iterations=1)
-    R = cv.dilate(R, mask, iterations=1)
+    # mask = np.ones((3, 3), np.uint8)
+    # R = cv.erode(R, mask, iterations=1)
+    # R = cv.dilate(R, mask, iterations=1)
 
-    R = cv.medianBlur(R, 3)
-    _, R = cv.threshold(R, 0, 255, cv.THRESH_BINARY)
+    # R = cv.medianBlur(R, 3)
+    # _, R = cv.threshold(R, 0, 255, cv.THRESH_BINARY)
 
     return R
 
 
-def su(im):
+def su(img):
     gfn = nfns
     N_MIN = 4
 
-    I = im.img.astype(np.float64)
+    I = img.astype(np.float64)
     cimg = localminmax(I, gfn)
 
-    _, ocimg = cv.threshold(rescale(cimg).astype(im.img.dtype), 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+    _, ocimg = cv.threshold(rescale(cimg).astype(img.dtype), 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
 
     E = ocimg.astype(np.float64)
     E_mean = np.zeros(I.shape, dtype=np.float64)
@@ -105,9 +103,9 @@ def rescale(r, maxvalue=255):
 ### sauvola ###
 
 
-def sauvola(im, window, dr, k):
-    rows, cols = im.img.shape
-    impad = padding(im.img, window)
+def sauvola(img, window, dr, k):
+    rows, cols = img.shape
+    impad = padding(img, window)
 
     mean, sqmean = integralMean(impad, rows, cols, window)
     n = window[0] * window[1]
@@ -118,21 +116,21 @@ def sauvola(im, window, dr, k):
     check_border = (mean >= 100)
     threshold = threshold * check_border
 
-    output = np.array(255 * (im.img >= threshold), 'uint8')
+    output = np.array(255 * (img >= threshold), 'uint8')
 
     return output
 
 
-def padding(im, window):
+def padding(img, window):
     pad = int(np.floor(window[0] / 2))
-    im.img = cv.copyMakeBorder(im.img, pad, pad, pad, pad, cv.BORDER_CONSTANT)
+    img = cv.copyMakeBorder(img, pad, pad, pad, pad, cv.BORDER_CONSTANT)
 
-    return im.img
+    return img
 
 
-def integralMean(im, rows, cols, window):
+def integralMean(img, rows, cols, window):
     m, n = window
-    sum, sqsum = cv.integral2(im.img)
+    sum, sqsum = cv.integral2(img)
     isum = sum[m:rows + m, n:cols + n] + \
         sum[0:rows, 0:cols] - \
         sum[m:rows + m, 0:cols] - \
@@ -159,7 +157,7 @@ def ind2sub(ind, shape):
 ### otsu ###
 
 
-def otsu(im):
-    _, binary = cv.threshold(im.img, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+def otsu(img):
+    _, binary = cv.threshold(img, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
 
     return binary
