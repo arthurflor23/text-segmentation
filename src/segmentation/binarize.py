@@ -30,12 +30,12 @@ def su_plus(img):
 
     R = (otsu_ocimg + (su_ocimg & cv.bitwise_not(im_floodfill)))
     
-    # mask = np.ones((3, 3), np.uint8)
-    # R = cv.erode(R, mask, iterations=1)
-    # R = cv.dilate(R, mask, iterations=1)
+    mask = np.ones((3, 3), np.uint8)
+    R = cv.erode(R, None, iterations=1)
+    R = cv.dilate(R, None, iterations=1)
 
-    # R = cv.medianBlur(R, 3)
-    # _, R = cv.threshold(R, 0, 255, cv.THRESH_BINARY)
+    R = cv.medianBlur(R, 3)
+    _, R = cv.threshold(R, 0, 255, cv.THRESH_BINARY)
 
     return R
 

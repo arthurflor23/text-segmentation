@@ -1,6 +1,7 @@
 from segmentation import binarize, line, word
 import environment as env
 import util.plot as plot
+import numpy as np
 import cv2 as cv
 import os
 
@@ -12,7 +13,7 @@ class Image():
 
 		self.img = cv.imread(i_path, cv.IMREAD_GRAYSCALE)
 		self.binary = None
-
+		
 		cv.imwrite(self.file_path_out(), self.img)
 
 	def file_path_out(self, ext=None, *args):
@@ -21,14 +22,14 @@ class Image():
 
 		ext = "" if ext is None else "_" + ext
 		return os.path.join(path, self.name + ext + self.file_ext)
-	
+
 	def threshold(self, method):
 		if method == "su":
 			self.binary = binarize.su(self.img)
 		elif method == "suplus":
 			self.binary = binarize.su_plus(self.img)
 		elif method == "sauvola":
-			self.binary = binarize.sauvola(self.img, [21, 21], 127, 0.1)
+			self.binary = binarize.sauvola(self.img, [127, 127], 127, 0.1)
 		else:
 			self.binary = binarize.otsu(self.img)
 

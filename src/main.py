@@ -7,18 +7,18 @@ import os
 
 def main():
 
-	# images = sorted(glob(os.path.join(DATA_PATH, "*.png")))
-	images = sorted(glob(os.path.join(env.SRC_PATH, "014.png")))
+#	images = sorted(glob(os.path.join(env.SRC_PATH, "*.png")))
+	images = sorted(glob(os.path.join(env.SRC_PATH, "temp.png")))
 
 	for i_path in images:
 		### read data
 		im = Image(i_path)
 
 		### preprocessing
-		# im.threshold("su")
-		# im.threshold("suplus")
-		# im.threshold("sauvola")
-		im.threshold("otsu")
+		#im.threshold("su")
+		#im.threshold("suplus")
+		im.threshold("sauvola")
+		#im.threshold("otsu")
 
 		im.segment()
 
