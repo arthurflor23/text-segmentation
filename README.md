@@ -1,1 +1,1 @@
-# lw-segmentation
+# handwritten-text-recognition

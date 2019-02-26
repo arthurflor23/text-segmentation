@@ -1,26 +1,23 @@
 from glob import glob as glob
-from util.image import Image
-import environment as env
-import cv2 as cv
+from imgproc.image import Image
+import argparse
 import os
+
+SRC_PATH = os.path.join("..", "data")
+OUT_PATH = os.path.join("..", "out")
 
 
 def main():
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-c", action="store_true", default=False)
+	args = parser.parse_args()
 
-#	images = sorted(glob(os.path.join(env.SRC_PATH, "*.png")))
-	images = sorted(glob(os.path.join(env.SRC_PATH, "temp.png")))
+	# images = sorted(glob(os.path.join(SRC_PATH, "*.png")))
+	images = sorted(glob(os.path.join(SRC_PATH, "005.png")))
 
-	for i_path in images:
-		### read data
-		im = Image(i_path)
-
-		### preprocessing
-		#im.threshold("su")
-		#im.threshold("suplus")
-		im.threshold("sauvola")
-		#im.threshold("otsu")
-
-		im.segment()
+	for src in images:
+		im = Image(src, OUT_PATH, args.c)
+		im.process()
 
 
 if __name__ == '__main__':

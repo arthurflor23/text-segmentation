@@ -111,6 +111,4 @@ dmypy.json
 
 .vscode
 .directory
-
-data/words
-words*
+.out
