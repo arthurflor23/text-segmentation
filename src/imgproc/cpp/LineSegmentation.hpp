@@ -7,7 +7,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#define CHUNKS_NUMBER 20
+#define CHUNKS_NUMBER 11
 #define CHUNKS_TO_BE_PROCESSED 5
 
 typedef int valley_id;

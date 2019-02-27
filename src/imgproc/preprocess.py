@@ -12,7 +12,6 @@ class PreProcess():
 		self.line_seg_cpp = os.path.join(self.path, "LineSegmentation.cpp")
 
 		self.compile_cmd = "g++ %s %s %s -o %s `pkg-config --cflags --libs opencv4`"
-		self.execute_cmd = "%s %s %s %s"
 
 		### use light distribution ###
 		self.light_parameter = "true"
@@ -20,17 +19,23 @@ class PreProcess():
 		### niblack = 0 | sauvola = 1 | wolf = 2 | otsu = 3 ###
 		self.threshold_parameter = "2"
 
-	def compile(self):
-		cmd = (self.compile_cmd % (self.main, self.binarize_cpp, self.line_seg_cpp, self.out))
+
+	def compile(self, cpp_compile):
+
+		if cpp_compile or not os.path.exists(self.out):
+			cmd = (self.compile_cmd % (self.main, self.binarize_cpp, self.line_seg_cpp, self.out))
+
+			if os.system(cmd) != 0:
+				print("Preprocess compile error")
+				exit()
+
+
+	def execute(self, src, out, name, ext):
+		default = ("%s %s %s %s %s" % (self.out, src, out, name, ext))
+		parameters = ("%s %s" % (self.light_parameter, self.threshold_parameter))
+
+		cmd = ("%s %s" % (default, parameters))
 
 		if os.system(cmd) != 0:
-			print("Preprocess compile error")
-			exit()
-
-	def execute(self, default):
-		default = str(default)[1:-1].replace(",","")
-		cmd = (self.execute_cmd % (self.out, default, self.light_parameter, self.threshold_parameter))
-
-		if os.system(cmd) != 0:
-			print("Image preprocess error: %s" % default[0])
+			print("Image preprocess error: %s" % src)
 			exit()

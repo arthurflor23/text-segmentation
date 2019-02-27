@@ -18,6 +18,13 @@ int main(int argc, char *argv[]) {
 
     Mat image = imread(src_path);
 
+    int new_w = 1920;
+    int new_h = ((new_w * image.rows) / image.cols);
+
+    if (image.cols > new_w){
+        resize(image, image, Size(new_w, new_h));
+    }
+
     createDirectory(out_path);
     imwrite(src_base + extension, image);
 
