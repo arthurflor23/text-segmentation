@@ -16,7 +16,7 @@ vector<Mat> LineSegmentation::segment(string data_base, string extension) {
     // Get initial lines.
     this->get_initial_lines();
     this->generate_image_with_lines();
-    imwrite(data_base + "_initial_lines" + extension, this->lines_drawing);
+    // imwrite(data_base + "_initial_lines" + extension, this->lines_drawing);
 
     // Get initial line regions.
     this->generate_regions();

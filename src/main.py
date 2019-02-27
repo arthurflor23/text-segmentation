@@ -11,8 +11,8 @@ def main():
 	parser.add_argument("-c", action="store_true", default=False)
 	args = parser.parse_args()
 
-	images = sorted(glob(os.path.join(src_path, "*.png")))
-	# images = sorted(glob(os.path.join(src_path, "000.png")))
+	# images = sorted(glob(os.path.join(src_path, "*.png")))
+	images = sorted(glob(os.path.join(src_path, "005.png")))
 
 	for src in images:
 		im = Image(src, out_path)

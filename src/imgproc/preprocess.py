@@ -17,8 +17,8 @@ class PreProcess():
 		### use light distribution ###
 		self.light_parameter = "true"
 
-		### 0: niblack, 1: sauvola, 2: wolf, 3: otsu ###
-		self.threshold_parameter = "3"
+		### niblack = 0 | sauvola = 1 | wolf = 2 | otsu = 3 ###
+		self.threshold_parameter = "2"
 
 	def compile(self):
 		cmd = (self.compile_cmd % (self.main, self.binarize_cpp, self.line_seg_cpp, self.out))
