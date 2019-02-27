@@ -4,7 +4,7 @@ import os
 class PreProcess():
 
 	def __init__(self):
-		self.path = os.path.join("imgproc", "segmentation")
+		self.path = os.path.join("imgproc", "cpp")
 		self.main = os.path.join(self.path, "main.cpp")
 		self.out = os.path.join(".", "preprocess.out")
 

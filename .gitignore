@@ -111,4 +111,5 @@ dmypy.json
 
 .vscode
 .directory
-.out
+
+*.out
