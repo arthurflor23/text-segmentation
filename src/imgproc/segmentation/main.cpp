@@ -6,49 +6,47 @@ using namespace cv::utils::fs;
 
 int main(int argc, char *argv[]) {
 
-    string data_path = argv[1];
-    string out_path = argv[2];
-    string name = argv[3];
-    string extension = argv[4];
+    string src_path = argv[1], out_path = argv[2];
+    string name = argv[3], extension = argv[4];
+    string src_base = (out_path + name);
 
-    string data_base = (out_path + name);
+    bool illumination = argv[5];
+    int threshold_method = stoi(argv[6]);
+
     string lines_path = join(out_path, "lines");
     string words_path = join(out_path, "words");
 
-    createDirectory(out_path);
+    Mat image = imread(src_path);
 
-    Mat image = imread(data_path);
-    imwrite(data_base + extension, image);
+    createDirectory(out_path);
+    imwrite(src_base + extension, image);
 
     // crop
     // ....
     
 
-    
     // binarization
-    Binarization *threshold = new Binarization();
-    
-    // Mat binary_image = threshold->otsu(image);
-    Mat binary_image = threshold->illumination_sauvola(image);
+    Binarization *threshold = new Binarization();    
+    threshold->binarize(image, illumination, threshold_method);
 
-
-
-    imwrite(data_base + "_binary" + extension, binary_image);
+    imwrite(src_base + "_binary" + extension, threshold->binary);
 
     // line segmentation
+    LineSegmentation *line = new LineSegmentation(threshold->binary);
+
+    delete threshold;
+    vector<cv::Mat> lines = line->segment(src_base, extension);
+    
     createDirectory(lines_path);
+    for (int i=0; i< lines.size(); i++) {
+        string number = to_string((i+1)*1e-6).substr(5);
+        imwrite(join(lines_path, "line_" + number + extension), lines[i]);
+    }
 
-    // LineSegmentation *line = new LineSegmentation(binary_image);
-    // vector<cv::Mat> lines = line->segment(data_base, extension);
-
-    // for (int i=0; i< lines.size(); i++) {
-    //     string number = to_string((i+1)*1e-6).substr(5);
-    //     imwrite(join(lines_path, "line_" + number + extension), lines[i]);
-    // }
 
     // word segmentation
-    createDirectory(words_path);
+    // createDirectory(words_path);
 
-    
+
     return 0;
 }
