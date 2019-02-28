@@ -7,7 +7,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#define CHUNKS_NUMBER 11
+#define CHUNKS_NUMBER 20
 #define CHUNKS_TO_BE_PROCESSED 5
 
 typedef int valley_id;
@@ -110,21 +110,21 @@ class Chunk {
 
 class LineSegmentation {
     public:
-        LineSegmentation(Mat binary_img);
+        LineSegmentation();
 
         Mat binary_img;
         vector<Rect> contours;
         Mat contours_drawing;
         Mat lines_drawing;
 
-        vector<cv::Mat> segment(string data_base, string extension);
+        void segment(Mat input, vector<Mat> &output, string data_base, string extension);
         void find_contours();
         void generate_chunks();
         void get_initial_lines();
 
         void generate_regions();
         void repair_lines();
-        vector<Mat> get_regions();
+        void get_regions(vector<Mat> &output);
         void generate_image_with_lines();
 
     private:

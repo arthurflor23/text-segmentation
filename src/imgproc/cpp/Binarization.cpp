@@ -7,18 +7,17 @@
 
 Binarization::Binarization() {};
 
-void Binarization::binarize(Mat image, bool illumination, int option){
-    cvtColor(image, this->grayscale, COLOR_BGR2GRAY);
-    this->binary = Mat(image.rows, image.cols, CV_8U);
-
-    int winy = (int) (2.0 * image.rows-1)/3;
-    int winx = (int) image.cols-1 < winy ? image.cols-1 : winy;
+void Binarization::binarize(Mat grayscale, Mat &output, bool illumination, int option){
+	this->grayscale = grayscale.clone();
+	
+    int winy = (int) (2.0 * this->grayscale.rows-1)/3;
+    int winx = (int) this->grayscale.cols-1 < winy ? this->grayscale.cols-1 : winy;
 
     if (winx > 127)
         winx = winy = 127;
 
     if (illumination){
-        get_histogram(image);
+        get_histogram(this->grayscale);
         get_cei();
         get_edge();
         get_tli();
@@ -26,16 +25,16 @@ void Binarization::binarize(Mat image, bool illumination, int option){
     }
 
     if (option < 3){
-        local_thresholding(this->grayscale, this->binary, option, winx, winy, 0.1, 128);
+        local_thresholding(this->grayscale, output, option, winx, winy, 0.1, 128);
     } else {
-        otsu();
+        otsu(this->grayscale, output);
     }
 }
 
-void Binarization::otsu(){    
+void Binarization::otsu(Mat grayscale, Mat &output){    
     Mat smoothed_img;
-    blur(this->grayscale, smoothed_img, Size(3,3), Point(-1,-1));
-    threshold(smoothed_img, this->binary, 0.0, 255, THRESH_BINARY | THRESH_OTSU);
+    blur(grayscale, smoothed_img, Size(3,3), Point(-1,-1));
+    threshold(smoothed_img, output, 0.0, 255, THRESH_BINARY | THRESH_OTSU);
 }
 
 void Binarization::local_thresholding(Mat im, Mat output, int option, int winx, int winy, double k, double dR){

@@ -1,14 +1,15 @@
 #include "LineSegmentation.hpp"
 
-LineSegmentation::LineSegmentation(Mat binary_img) {
-    this->binary_img = binary_img;
+LineSegmentation::LineSegmentation() {
     this->sieve();
 };
 
-vector<Mat> LineSegmentation::segment(string data_base, string extension) {
+void LineSegmentation::segment(Mat input, vector<Mat> &output, string data_base, string extension) {
+    this->binary_img = input;
+
     // Find letters contours.
     this->find_contours();
-    imwrite(data_base + "_contours" + extension, this->contours_drawing);
+    imwrite(data_base + "_3_contours" + extension, this->contours_drawing);
 
     // Divide image into vertical chunks.
     this->generate_chunks();
@@ -26,9 +27,9 @@ vector<Mat> LineSegmentation::segment(string data_base, string extension) {
     this->generate_regions();
 
     this->generate_image_with_lines();
-    imwrite(data_base + "_last_lines" + extension, this->lines_drawing);
+    imwrite(data_base + "_3_last_lines" + extension, this->lines_drawing);
 
-    return this->get_regions();;
+    this->get_regions(output);
 }
 
 void LineSegmentation::sieve() {
@@ -53,11 +54,9 @@ void LineSegmentation::add_primes_to_vector(int n, vector<int> &probPrimes) {
 }
 
 void LineSegmentation::find_contours() {
-    Mat img_clone = this->binary_img;
-
     vector<vector<Point>> contours;
     vector<Vec4i> hierarchy;
-    findContours(img_clone, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE, Point(0, 0));
+    findContours(this->binary_img, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE, Point(0, 0));
 
     // Initializing rectangular and poly vectors.
     vector<vector<Point> > contours_poly(contours.size());
@@ -332,12 +331,12 @@ bool LineSegmentation::component_belongs_to_above_region(Line &line, Rect &conto
     return prob_above < prob_below;
 }
 
-vector<Mat> LineSegmentation::get_regions() {
+void LineSegmentation::get_regions(vector<Mat> &output) {
     vector<Mat> ret;
     for (auto region : this->line_regions) {
         ret.push_back(region->region.clone());
     }
-    return ret;
+    output = ret;
 }
 
 void LineSegmentation::generate_image_with_lines() {

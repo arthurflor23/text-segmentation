@@ -1,4 +1,5 @@
 #include "Binarization.hpp"
+#include "CropScanner.hpp"
 #include "LineSegmentation.hpp"
 #include <opencv2/core/utils/filesystem.hpp>
 
@@ -16,7 +17,9 @@ int main(int argc, char *argv[]) {
     string lines_path = join(out_path, "lines");
     string words_path = join(out_path, "words");
 
-    Mat image = imread(src_path);
+    // Mat image = imread(src_path);
+    // Mat image = imread(src_path);
+    Mat image = imread(src_path, IMREAD_GRAYSCALE);
 
     int new_w = 1920;
     int new_h = ((new_w * image.rows) / image.cols);
@@ -28,28 +31,29 @@ int main(int argc, char *argv[]) {
     createDirectory(out_path);
     imwrite(src_base + extension, image);
 
-    // crop
-    // ....
+    // 1: crop
+    CropScanner *crop = new CropScanner();
+    crop->process(image, image);
+
+    imwrite(src_base + "_1_crop" + extension, image);
+
+    // 2: binarization
+    // Binarization *threshold = new Binarization();    
+    // threshold->binarize(image, image, illumination, threshold_method);
+
+    // imwrite(src_base + "_2_binary" + extension, image);
+
+    // 3: line segmentation
+    // LineSegmentation *line = new LineSegmentation();
+    // vector<cv::Mat> lines;
+
+    // line->segment(image, lines, src_base, extension);
     
-
-    // binarization
-    Binarization *threshold = new Binarization();    
-    threshold->binarize(image, illumination, threshold_method);
-
-    imwrite(src_base + "_binary" + extension, threshold->binary);
-
-    // line segmentation
-    LineSegmentation *line = new LineSegmentation(threshold->binary);
-
-    delete threshold;
-    vector<cv::Mat> lines = line->segment(src_base, extension);
-    
-    createDirectory(lines_path);
-    for (int i=0; i< lines.size(); i++) {
-        string number = to_string((i+1)*1e-6).substr(5);
-        imwrite(join(lines_path, "line_" + number + extension), lines[i]);
-    }
-
+    // createDirectory(lines_path);
+    // for (int i=0; i< lines.size(); i++) {
+    //     string number = to_string((i+1)*1e-6).substr(5);
+    //     imwrite(join(lines_path, "line_" + number + extension), lines[i]);
+    // }
 
     // word segmentation
     // createDirectory(words_path);

@@ -1,7 +1,6 @@
 from glob import glob as glob
-from imgproc.image import Image
-from imgproc.preprocess import PreProcess
 from functools import partial
+from imgproc import Image, PreProcess
 import multiprocessing
 import argparse
 import os
@@ -14,14 +13,14 @@ def main():
 	parser.add_argument("-c", action="store_true", default=False)
 	args = parser.parse_args()
 
-	preprocess = PreProcess()
-	preprocess.compile(args.c)
+	pp = PreProcess()
+	pp.compile(args.c)
 
 	# images = sorted(glob(os.path.join(src_path, "*.png")))
-	images = sorted(glob(os.path.join(src_path, "001.png")))
+	images = sorted(glob(os.path.join(src_path, "009.png")))
 
 	pool = multiprocessing.Pool(multiprocessing.cpu_count())
-	pool.map(partial(foo, out=out_path, pp=preprocess), images)
+	pool.map(partial(foo, out=out_path, pp=pp), images)
 	pool.close()
 	pool.join()
 
