@@ -2,15 +2,13 @@
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
 
-#define PAD 100
-
 using namespace cv;
 using namespace std;
 
 class CropScanner {
     public:
         CropScanner();
-        void process(Mat image, Mat &output);
+        void process(Mat image, Mat &output, string data_base, string extension);
 
     private:
         void get_rect_text(Mat binary, Rect &output);

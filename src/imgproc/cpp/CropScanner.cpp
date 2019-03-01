@@ -68,29 +68,34 @@ void CropScanner::fourPointTransform(Mat src, Mat &dst, vector<Point> pts){
 	};
 
 	Point2f dst_[] ={
-			Point2f(0,0),
-			Point2f(mw - 1, 0),
-			Point2f(mw - 1, mh - 1),
-			Point2f(0, mh - 1)
+        Point2f(0,0),
+        Point2f(mw-1, 0),
+        Point2f(mw-1, mh-1),
+        Point2f(0, mh-1)
 	};
 
 	Mat m = getPerspectiveTransform(src_, dst_);
-	warpPerspective(src, dst, m, Size(mw, mh));
+	warpPerspective(src, dst, m, Size(mw, mh), BORDER_REPLICATE, INTER_LINEAR);
 }
 
 void CropScanner::get_edges(Mat input, Mat &output){
 	Mat imageOpen, imageClosed, imageBlurred;
-	Mat structuringElmt = getStructuringElement(MORPH_ELLIPSE, Size(4,4));
+	Mat structuringElmt = getStructuringElement(MORPH_ELLIPSE, Size(1,1));
 
 	morphologyEx(input, imageOpen, MORPH_OPEN, structuringElmt);
 	morphologyEx(imageOpen, imageClosed, MORPH_CLOSE, structuringElmt);
 
-	GaussianBlur(imageClosed, imageBlurred, Size(7, 7), 0);
+	GaussianBlur(imageClosed, imageBlurred, Size(5,5), 0);
 	Canny(imageBlurred, output, 75, 100);
+
+    Mat kernel = getStructuringElement(MORPH_RECT, Size(9,9));
+    dilate(output, output, kernel);
 }
 
-void CropScanner::process(Mat image, Mat &output){
+void CropScanner::process(Mat image, Mat &output, string data_base, string extension){
 	Mat orig = image.clone();
+    Mat pre_output = output.clone();
+
     double scale = 500.0;
     double ratio = image.rows / scale;
 
@@ -100,111 +105,58 @@ void CropScanner::process(Mat image, Mat &output){
     Mat edged;
     get_edges(image, edged);
 
-    vector<vector<Point>> contours;
+    vector<vector<Point>> contours, approx;
 	vector<Vec4i> hierarchy;
 	findContours(edged, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
 
-    // vector<vector<Point>> contours_poly(contours.size());
-    // vector<Rect> bound_rect(contours.size()-1);
+    int area, mean_area, total_area = 0;
+    vector<RotatedRect> min_rect(contours.size());
 
-    // for (int i = 0; i < contours.size() - 1; i++) {
-    //     approxPolyDP(Mat(contours[i]), contours_poly[i], 1, true);
-    //     bound_rect[i] = boundingRect(Mat(contours_poly[i]));
-    // }
-
-    // Rect2d rectangle3;
-    // vector<Rect> merged_rectangles;
-    // bool is_repeated;
-
-    // int min_x = image.cols, max_x = 0;
-    // int min_y = image.rows, max_y = 0;
-    // int total_area = 0, mean_area = 0;
-    // int best_area = 0;
-
-    // for (int i = 0; i < bound_rect.size(); i++) {
-    //     is_repeated = false;
-
-    //     for (int j = i + 1; j < bound_rect.size(); j++) {
-    //         rectangle3 = bound_rect[i] & bound_rect[j];
-
-    //         if ((rectangle3.area() == bound_rect[i].area()) || (rectangle3.area() == bound_rect[j].area())) {
-    //             is_repeated = true;
-    //             rectangle3 = bound_rect[i] | bound_rect[j];
-    //             Rect2d merged_rectangle(rectangle3.tl().x, rectangle3.tl().y, rectangle3.width, rectangle3.height);
-
-    //             // if (j == bound_rect.size() - 2)
-    //                 // merged_rectangles.push_back(merged_rectangle);
-    //                 // total_area += merged_rectangle.area(); 
-
-    //             bound_rect[j] = merged_rectangle;
-    //         }
-    //     }
-    //     if (!is_repeated)
-    //         merged_rectangles.push_back(bound_rect[i]);
-    //         total_area += bound_rect[i].area(); 
-    // }
-
-    // mean_area = (total_area/merged_rectangles.size());
-
-    // Mat draw = Mat::ones(image.rows, image.cols, CV_32F) * 255;
-    // Mat draw;
-    // cvtColor(image, draw, COLOR_GRAY2BGR);
-
-    // for (int i = 0; i < merged_rectangles.size(); i++){
-    //     rectangle(draw, merged_rectangles[i].tl(), merged_rectangles[i].br(), Vec3b(0,0,255), 2, 8, 0);
-
-        // if (merged_rectangles.size() < 20){
-        //     if (merged_rectangles[i].area() >= best_area){
-        //         best_area = merged_rectangles[i].area();
-
-        //         min_x = merged_rectangles[i].tl().x;
-        //         max_x = merged_rectangles[i].br().x;
-        //         min_y = merged_rectangles[i].tl().y;
-        //         max_y = merged_rectangles[i].br().y;
-        //     }
-        // } else if (
-        //     merged_rectangles[i].width > merged_rectangles[i].height &&
-        //     merged_rectangles[i].area() > mean_area*0.1 && 
-        //     merged_rectangles[i].area() < mean_area*0.9
-        // ){
-        //     min_x = merged_rectangles[i].tl().x < min_x ? merged_rectangles[i].tl().x : min_x;
-        //     min_y = merged_rectangles[i].tl().y < min_y ? merged_rectangles[i].tl().y : min_y;
-
-        //     max_x = merged_rectangles[i].br().x > max_x ? merged_rectangles[i].br().x : max_x;
-        //     max_y = merged_rectangles[i].br().y > max_y ? merged_rectangles[i].br().y : max_y;
-        // }
-    // }
-
-    // Rect r = Rect(min_x, min_y, max_x-min_x, max_y-min_y);
-    // rectangle(draw, r.tl(), r.br(), 0, 2, 8, 0);
-
-    // output = draw; return;
-
-
-
-	vector<vector<Point>> approx;
-	approx.resize(contours.size());
-	size_t i,j;
-
-	for(i=0; i<contours.size(); i++){
-		double peri = arcLength(contours[i], true);
-		approxPolyDP(contours[i], approx[i], 0.02 * peri, true);
-	}
-	sort(approx.begin(), approx.end(), compareContourAreas);
-
-    for(i = 0; i< approx.size(); i++){
-		if(approx[i].size() == 4)
-			break;
-	}
-
-    if(i < approx.size()){
-        drawContours(output, approx, i, Scalar(0, 255, 0), 2);
-
-		for(j=0; j<approx[i].size(); j++){
-			approx[i][j] *= ratio;
-		}
-		// fourPointTransform(orig, output, approx[i]);
+	for(int i=0; i<contours.size(); i++){
+        min_rect[i] = minAreaRect(Mat(contours[i]));
+        total_area += (min_rect[i].size.width * min_rect[i].size.height);
     }
 
+    mean_area = (total_area/min_rect.size());
+    vector<Point> points;
 
+    for (int i=0; i<min_rect.size(); i++){
+        area = (min_rect[i].size.width * min_rect[i].size.height);
+
+        // rect area must be higher mean area from contoures and smaller total area
+        // also smaller height and width
+        if (area > mean_area * 0.1 && area < total_area * 0.3
+            && min_rect[i].size.height < image.rows*0.5
+            && min_rect[i].size.width < image.cols*0.9
+        ){
+            Point2f rect_points[4]; 
+            min_rect[i].points(rect_points);
+
+            for (int j=0; j<4; j++){
+                points.push_back(Point(rect_points[j].x*ratio, rect_points[j].y*ratio));
+                line(pre_output, rect_points[j]*ratio, rect_points[(j+1)%4]*ratio, Scalar(0, 255, 0), 2, 8);
+            }
+        }
+    }
+
+    min_rect.clear();
+    min_rect.push_back(minAreaRect(Mat(points)));
+
+    for (int i=0; i<min_rect.size(); i++){
+        vector<Point> p;
+        Point2f rect_points[4];
+        min_rect[i].points(rect_points);
+
+        for(int j=0; j<4; j++){
+            p.push_back(Point(rect_points[j].x, rect_points[j].y));
+            line(pre_output, rect_points[j], rect_points[(j+1)%4], Scalar(0, 255, 0), 2, 8);
+        }
+        approx.push_back(p);
+    }
+    // imwrite(data_base + "_2_crop_detection" + extension, pre_output);
+
+    fourPointTransform(orig, output, approx[0]);
+    
+    int pad = output.cols * 0.25;
+    copyMakeBorder(output, output, 0, 0, pad, pad, BORDER_CONSTANT, 255);
 }

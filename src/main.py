@@ -17,7 +17,7 @@ def main():
 	pp.compile(args.c)
 
 	# images = sorted(glob(os.path.join(src_path, "*.png")))
-	images = sorted(glob(os.path.join(src_path, "009.png")))
+	images = sorted(glob(os.path.join(src_path, "000.jpg")))
 
 	pool = multiprocessing.Pool(multiprocessing.cpu_count())
 	pool.map(partial(foo, out=out_path, pp=pp), images)

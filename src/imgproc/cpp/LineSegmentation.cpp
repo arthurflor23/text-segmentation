@@ -9,7 +9,7 @@ void LineSegmentation::segment(Mat input, vector<Mat> &output, string data_base,
 
     // Find letters contours.
     this->find_contours();
-    imwrite(data_base + "_3_contours" + extension, this->contours_drawing);
+    // imwrite(data_base + "_3_contours" + extension, this->contours_drawing);
 
     // Divide image into vertical chunks.
     this->generate_chunks();
