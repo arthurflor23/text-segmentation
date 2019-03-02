@@ -11,13 +11,16 @@ out_path = os.path.join("..", "out")
 def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-c", action="store_true", default=False)
+	parser.add_argument("--image", type=str, default=None)
 	args = parser.parse_args()
 
 	pp = PreProcess()
 	pp.compile(args.c)
 
-	# images = sorted(glob(os.path.join(src_path, "*.png")))
-	images = sorted(glob(os.path.join(src_path, "000.jpg")))
+	if (args.image):
+		images = sorted(glob(os.path.join(src_path, args.image)))
+	else:
+		images = sorted(glob(os.path.join(src_path, "*.png")))
 
 	pool = multiprocessing.Pool(multiprocessing.cpu_count())
 	pool.map(partial(foo, out=out_path, pp=pp), images)

@@ -7,22 +7,15 @@
 
 Binarization::Binarization() {};
 
-void Binarization::binarize(Mat grayscale, Mat &output, bool illumination, int option){
-	this->grayscale = grayscale.clone();
-	
+void Binarization::binarize(Mat image, Mat &output, int illumination, int option){
+	cvtColor(image, this->grayscale, COLOR_BGR2GRAY);
+	output = this->grayscale.clone();
+
     int winy = (int) (2.0 * this->grayscale.rows-1)/3;
     int winx = (int) this->grayscale.cols-1 < winy ? this->grayscale.cols-1 : winy;
 
-    if (winx > 127)
-        winx = winy = 127;
-
-    if (illumination){
-        get_histogram(this->grayscale);
-        get_cei();
-        get_edge();
-        get_tli();
-        light_distribution();
-    }
+    if (winx > 127) winx = winy = 127;
+    if (illumination) light_distribution();
 
     if (option < 3){
         local_thresholding(this->grayscale, output, option, winx, winy, 0.1, 128);
@@ -37,7 +30,7 @@ void Binarization::otsu(Mat grayscale, Mat &output){
     threshold(smoothed_img, output, 0.0, 255, THRESH_BINARY | THRESH_OTSU);
 }
 
-void Binarization::local_thresholding(Mat im, Mat output, int option, int winx, int winy, double k, double dR){
+void Binarization::local_thresholding(Mat im, Mat &output, int option, int winx, int winy, double k, double dR){
 	double m, s, max_s;
 	double th = 0;
 	double min_I, max_I;
@@ -217,6 +210,11 @@ double Binarization::calc_local_stats(Mat &im, Mat &map_m, Mat &map_s, int winx,
 }
 
 void Binarization::light_distribution(){
+	get_histogram(this->grayscale);
+	get_cei();
+	get_edge();
+	get_tli();
+
     Mat int_img = this->cei.clone();
 
     for (int y=0; y<int_img.cols; y++){
@@ -236,20 +234,17 @@ void Binarization::light_distribution(){
                     double min_h, max_h, min_e, max_e;
 
                     for (int k=0; k<5; k++){
-                        if ((head - k) >= 0){
+                        if ((head - k) >= 0)
                             mpv_h.push_back(this->cei.at<float>(head-k,y));
-                        }
-                        if ((end + k) < this->cei.rows){
+                        if ((end + k) < this->cei.rows)
                             mpv_e.push_back(this->cei.at<float>(end+k,y));
-                        }
                     }
 
                     minMaxLoc(mpv_h, &min_h, &max_h);
                     minMaxLoc(mpv_e, &min_e, &max_e);
 
-                    for (int m=0; m<n; m++){
+                    for (int m=0; m<n; m++)
                         int_img.at<float>(head+m,y) = max_h + (m+1) * ((max_e-max_h) / n);
-                    }
                 }
             }
         }
@@ -262,9 +257,8 @@ void Binarization::light_distribution(){
 
     for (int y=0; y<this->tli_erosion.rows; y++){
         for (int x=0; x<this->tli_erosion.cols; x++){
-            if (this->tli_erosion.at<float>(y,x) != 0){
+            if (this->tli_erosion.at<float>(y,x) != 0)
                 this->grayscale.at<float>(y,x) *= 1.5;
-            }
         }
     }
 

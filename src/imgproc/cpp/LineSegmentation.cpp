@@ -1,35 +1,39 @@
 #include "LineSegmentation.hpp"
 
-LineSegmentation::LineSegmentation() {
-    this->sieve();
+LineSegmentation::LineSegmentation(int chunks_number, int chunks_process) {
+    this->CHUNKS_NUMBER = chunks_number;
+    this->CHUNKS_TO_BE_PROCESSED = chunks_process;
+    sieve();
 };
 
 void LineSegmentation::segment(Mat input, vector<Mat> &output, string data_base, string extension) {
     this->binary_img = input;
 
-    // Find letters contours.
-    this->find_contours();
+    // Find letters contours
+    find_contours();
     // imwrite(data_base + "_3_contours" + extension, this->contours_drawing);
 
-    // Divide image into vertical chunks.
-    this->generate_chunks();
+    // Divide image into vertical chunks
+    generate_chunks();
 
-    // Get initial lines.
-    this->get_initial_lines();
-    this->generate_image_with_lines();
-    // imwrite(data_base + "_initial_lines" + extension, this->lines_drawing);
+    // Get initial lines
+    get_initial_lines();
+    generate_image_with_lines();
 
-    // Get initial line regions.
-    this->generate_regions();
-    // Repair initial lines and generate the final line regions.
-    this->repair_lines();
-    // Generate the final line regions.
-    this->generate_regions();
+    // Get initial line regions
+    generate_regions();
+    // Repair initial lines and generate the final line regions
+    repair_lines();
+    // Generate the final line regions
+    generate_regions();
 
-    this->generate_image_with_lines();
-    imwrite(data_base + "_3_last_lines" + extension, this->lines_drawing);
+    generate_image_with_lines();
+    imwrite(data_base + "_3_lines" + extension, this->lines_drawing);
 
-    this->get_regions(output);
+    get_regions(output);
+
+    for(int i=0; i<output.size(); i++)
+        deslant(output[i], output[i], 255);
 }
 
 void LineSegmentation::sieve() {
@@ -58,44 +62,44 @@ void LineSegmentation::find_contours() {
     vector<Vec4i> hierarchy;
     findContours(this->binary_img, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE, Point(0, 0));
 
-    // Initializing rectangular and poly vectors.
+    // Initializing rectangular and poly vectors
     vector<vector<Point> > contours_poly(contours.size());
     vector<Rect> bound_rect(contours.size() - 1);
 
-    // Getting rectangular boundaries from contours.
+    // Getting rectangular boundaries from contours
     for (size_t i = 0; i < contours.size() - 1; i++) {
         approxPolyDP(Mat(contours[i]), contours_poly[i], 1, true);
         bound_rect[i] = boundingRect(Mat(contours_poly[i]));
     }
 
-    // Merging the rectangular boundaries.
+    // Merging the rectangular boundaries
     Rect2d rectangle3;
     vector<Rect> merged_rectangles;
     bool is_repeated;
     cvtColor(this->binary_img, this->contours_drawing, COLOR_GRAY2BGR);
 
-    // Checking for intersecting rectangles.
+    // Checking for intersecting rectangles
     for (int i = 0; i < bound_rect.size(); i++) {
         is_repeated = false;
 
         for (int j = i + 1; j < bound_rect.size(); j++) {
             rectangle3 = bound_rect[i] & bound_rect[j];
 
-            // Check for intersection/union.
+            // Check for intersection/union
             if ((rectangle3.area() == bound_rect[i].area()) || (rectangle3.area() == bound_rect[j].area())) {
                 is_repeated = true;
                 rectangle3 = bound_rect[i] | bound_rect[j];
                 Rect2d merged_rectangle(rectangle3.tl().x, rectangle3.tl().y, rectangle3.width, rectangle3.height);
 
-                // Push in merged rectangle after checking all the inner loop.
+                // Push in merged rectangle after checking all the inner loop
                 if (j == bound_rect.size() - 2)
                     merged_rectangles.push_back(merged_rectangle);
 
-                // Update the current vector.
+                // Update the current vector
                 bound_rect[j] = merged_rectangle;
             }
         }
-        // Adding the non repeated (not intersected) rectangles.
+        // Adding the non repeated (not intersected) rectangles
         if (!is_repeated)
             merged_rectangles.push_back(bound_rect[i]);
     }
@@ -125,7 +129,7 @@ void LineSegmentation::generate_chunks() {
 void LineSegmentation::get_initial_lines() {
     int number_of_heights = 0, valleys_min_abs_dist = 0;
 
-    // Get the histogram of the first CHUNKS_TO_BE_PROCESSED and get the overall average line height.
+    // Get the histogram of the first CHUNKS_TO_BE_PROCESSED and get the overall average line height
     for (int i = 0; i < CHUNKS_TO_BE_PROCESSED; i++) {
         int avg_height = this->chunks[i]->find_peaks_valleys(map_valley);
 
@@ -135,20 +139,20 @@ void LineSegmentation::get_initial_lines() {
     valleys_min_abs_dist /= number_of_heights;
     this->predicted_line_height = valleys_min_abs_dist;
 
-    // Start form the CHUNKS_TO_BE_PROCESSED chunk.
+    // Start form the CHUNKS_TO_BE_PROCESSED chunk
     for (int i = CHUNKS_TO_BE_PROCESSED - 1; i >= 0; i--) {
         if (chunks[i]->valleys.empty()) continue;
 
-        // Connect each valley with the nearest ones in the left chunks.
+        // Connect each valley with the nearest ones in the left chunks
         for (auto &valley : chunks[i]->valleys) {
             if (valley->used) continue;
 
-            // Start a new line having the current valley and connect it with others in the left.
+            // Start a new line having the current valley and connect it with others in the left
             valley->used = true;
 
             Line *new_line = new Line(valley->valley_id);
             new_line = connect_valleys(i - 1, valley, new_line, valleys_min_abs_dist);
-            new_line->generate_initial_points(chunk_width, binary_img.cols, map_valley);
+            new_line->generate_initial_points(CHUNKS_NUMBER, chunk_width, binary_img.cols, map_valley);
 
             if (new_line->valleys_ids.size() > 1)
                 this->initial_lines.push_back(new_line);
@@ -159,7 +163,7 @@ void LineSegmentation::get_initial_lines() {
 Line * LineSegmentation::connect_valleys(int i, Valley *current_valley, Line *line, int valleys_min_abs_dist) {
     if (i <= 0 || chunks[i]->valleys.empty()) return line;
 
-    // Choose the closest valley in right chunk to the start valley.
+    // Choose the closest valley in right chunk to the start valley
     int connected_to = -1;
     int min_distance = 100000;
 
@@ -174,7 +178,7 @@ Line * LineSegmentation::connect_valleys(int i, Valley *current_valley, Line *li
         }
     }
 
-    // Return line if the current valley is not connected any more to a new valley in the current chunk of index i.
+    // Return line if the current valley is not connected any more to a new valley in the current chunk of index i
     if (connected_to == -1) {
         return line;
     }
@@ -190,7 +194,7 @@ void LineSegmentation::generate_regions() {
     sort(this->initial_lines.begin(), this->initial_lines.end(), Line::comp_min_row_position);
     this->line_regions = vector<Region *>();
 
-    // Add first region.
+    // Add first region
     Region *r = new Region(nullptr, this->initial_lines[0]);
     r->update_region(this->binary_img, 0);
 
@@ -200,16 +204,16 @@ void LineSegmentation::generate_regions() {
     if (r->height < this->predicted_line_height * 2.5)
         this->avg_line_height += r->height;
 
-    // Add rest of regions.
+    // Add rest of regions
     for (int i = 0; i < this->initial_lines.size(); ++i) {
         Line *top_line = this->initial_lines[i];
         Line *bottom_line = (i == this->initial_lines.size() - 1) ? nullptr : this->initial_lines[i + 1];
 
-        // Assign lines to region.
+        // Assign lines to region
         Region *r = new Region(top_line, bottom_line);
         bool res = r->update_region(this->binary_img, i);
 
-        // Assign regions to lines.
+        // Assign regions to lines
         if (top_line != nullptr)
             top_line->below = r;
 
@@ -228,7 +232,7 @@ void LineSegmentation::generate_regions() {
 }
 
 void LineSegmentation::repair_lines() {
-    // Loop over the regions.
+    // Loop over the regions
     for (Line *line : initial_lines) {
         map<int, bool> column_processed = map<int, bool>();
 
@@ -241,7 +245,7 @@ void LineSegmentation::repair_lines() {
                 bool black_found = false;
 
                 if (line->points[i - 1].x != line->points[i].x) {
-                    // Means the points are in different rows (a vertical line).
+                    // Means the points are in different rows (a vertical line)
                     int min_row = min(line->points[i - 1].x, line->points[i].x);
                     int max_row = max(line->points[i - 1].x, line->points[i].x);
 
@@ -258,14 +262,14 @@ void LineSegmentation::repair_lines() {
             // Ignore it's previously processed
             if (column_processed[y]) continue;
 
-            // Mark column as processed.
+            // Mark column as processed
             column_processed[y] = true;
 
             for (auto contour : this->contours) {
                 // Check line & contour intersection
                 if (y >= contour.tl().x && y <= contour.br().x && x >= contour.tl().y && x <= contour.br().y) {
 
-                    // If contour is longer than the average height ignore.
+                    // If contour is longer than the average height ignore
                     if (contour.br().y - contour.tl().y > this->avg_line_height * 0.9) continue;
 
                     bool is_component_above = component_belongs_to_above_region(*line, contour);
@@ -291,7 +295,7 @@ void LineSegmentation::repair_lines() {
 }
 
 bool LineSegmentation::component_belongs_to_above_region(Line &line, Rect &contour) {
-    // Calculate probabilities.
+    // Calculate probabilities
     vector<int> probAbovePrimes(primes.size(), 0);
     vector<int> probBelowPrimes(primes.size(), 0);
     int n = 0;
@@ -339,6 +343,62 @@ void LineSegmentation::get_regions(vector<Mat> &output) {
     output = ret;
 }
 
+struct Result {
+    float sum_alpha = 0.0f;
+    Mat transform;
+    Size size;
+    bool operator < (const Result& rhs) const { return sum_alpha < rhs.sum_alpha; }
+};
+
+void LineSegmentation::deslant(Mat image, Mat &output, int bgcolor){
+    vector<float> alphaVals = {-1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0};
+    vector<int> sum_alpha(alphaVals.size(), 0);
+	vector<Result> results;
+
+	for (size_t i=0; i<alphaVals.size(); ++i){
+        Result result;
+		const float alpha = alphaVals[i];
+		const float shiftX = max(-alpha*image.rows, 0.0f);
+		result.size = Size(image.cols + static_cast<int>(ceil(abs(alpha*image.rows))), image.rows);
+
+        result.transform = Mat(2,3, CV_32F);
+        result.transform.at<float>(0,0) = 1;
+        result.transform.at<float>(0,1) = alpha;
+        result.transform.at<float>(0,2) = shiftX;
+        result.transform.at<float>(1,0) = 0;
+        result.transform.at<float>(1,1) = 1;
+        result.transform.at<float>(1,2) = 0;
+
+        Mat imgSheared;
+		warpAffine(image, imgSheared, result.transform, result.size, INTER_NEAREST);
+
+		for (int x=0; x<imgSheared.cols; ++x){
+			vector<int> fgIndices;
+
+			for (int y = 0; y < imgSheared.rows; ++y){
+				if (imgSheared.at<unsigned char>(y,x))
+					fgIndices.push_back(y);
+			}
+
+			if (fgIndices.empty()) 
+                continue;
+
+            // number of fg pixels in col
+			int h_alpha = static_cast<int>(fgIndices.size());
+            // distance between first and last fg pixel in col (+1 to avoid getting Float.Inf)
+			int delta_y_alpha = fgIndices.back() - fgIndices.front() + 1;
+
+			if (h_alpha == delta_y_alpha)
+                result.sum_alpha += h_alpha*h_alpha;
+			results.push_back(result);
+		}
+
+		// use best result to transform image
+		Result bestResult = *max_element(results.begin(), results.end());
+		warpAffine(image, output, bestResult.transform, bestResult.size, INTER_LINEAR, BORDER_CONSTANT, Scalar(bgcolor));
+    }
+}
+
 void LineSegmentation::generate_image_with_lines() {
     cvtColor(this->binary_img, this->lines_drawing, COLOR_GRAY2BGR);
 
@@ -348,13 +408,12 @@ void LineSegmentation::generate_image_with_lines() {
         for (auto point : line->points) {
             this->lines_drawing.at<Vec3b>(point.x, point.y) = Vec3b(0,0,255);
                 
-            // Check and draw vertical lines if found.
+            // Check and draw vertical lines if found
             if (last_row != -1 && point.x != last_row) {
                 for (int i = min(last_row, point.x); i < max(last_row, point.x); i++) {
                     this->lines_drawing.at<Vec3b>(i, point.y) = Vec3b(0,0,255);
                 }
             }
-
             last_row = point.x;
         }
     }
@@ -403,7 +462,7 @@ void Chunk::calculate_histogram() {
         }
     }
 
-    // Calculate the white spaces average height.
+    // Calculate the white spaces average height
     sort(white_spaces.begin(), white_spaces.end());
     for (int i = 0; i < white_spaces.size(); ++i) {
         if (white_spaces[i] > 4 * avg_height) break;
@@ -412,7 +471,7 @@ void Chunk::calculate_histogram() {
     }
     if (white_lines_count) avg_white_height /= white_lines_count;
 
-    // Calculate the average line height.
+    // Calculate the average line height
     if (lines_count) avg_height /= lines_count;
     avg_height = max(30, int(avg_height + (avg_height / 2.0)));
 }
@@ -452,14 +511,14 @@ int Chunk::find_peaks_valleys(map<int, Valley *> &map_valley) {
     lines_count = int(new_peaks.size());
     peaks = new_peaks;
 
-    // Sort peaks by max value and remove the outliers (the ones with less foreground pixels).
+    // Sort peaks by max value and remove the outliers (the ones with less foreground pixels)
     sort(peaks.begin(), peaks.end());
     peaks.resize(lines_count + 1 <= peaks.size() ? (unsigned long) lines_count + 1 : peaks.size());
 
-    // Sort peaks by least position.
+    // Sort peaks by least position
     sort(peaks.begin(), peaks.end(), Peak::comp);
 
-    // Search for valleys between 2 peaks.
+    // Search for valleys between 2 peaks
     for (int i = 1; i < peaks.size(); i++) {
         pair<int, int> expected_valley_positions[4];
         int min_position = (peaks[i - 1].position + peaks[i].position) / 2;
@@ -498,13 +557,13 @@ Line::Line(int initial_valley_id): min_row_position(0), max_row_position(0), poi
     valleys_ids.push_back(initial_valley_id);
 }
 
-void Line::generate_initial_points(int chunk_width, int img_width, map<int, Valley *> map_valley) {
+void Line::generate_initial_points(int chunks_number, int chunk_width, int img_width, map<int, Valley *> map_valley) {
     int c = 0, previous_row = 0;
 
-    // Sort the valleys according to their chunk number.
+    // Sort the valleys according to their chunk number
     sort(valleys_ids.begin(), valleys_ids.end());
 
-    // Add line points in the first chunks having no valleys.
+    // Add line points in the first chunks having no valleys
     if (map_valley[valleys_ids.front()]->chunk_index > 0) {
         previous_row = map_valley[valleys_ids.front()]->position;
         max_row_position = min_row_position = previous_row;
@@ -514,7 +573,7 @@ void Line::generate_initial_points(int chunk_width, int img_width, map<int, Vall
         }
     }
 
-    // Add line points between the valleys.
+    // Add line points between the valleys
     for (auto id : valleys_ids) {
         int chunk_index = map_valley[id]->chunk_index;
         int chunk_row = map_valley[id]->position;
@@ -533,8 +592,8 @@ void Line::generate_initial_points(int chunk_width, int img_width, map<int, Vall
         }
     }
 
-    // Add line points in the last chunks having no valleys.
-    if (CHUNKS_NUMBER - 1 > map_valley[valleys_ids.back()]->chunk_index) {
+    // Add line points in the last chunks having no valleys
+    if (chunks_number - 1 > map_valley[valleys_ids.back()]->chunk_index) {
         int chunk_index = map_valley[valleys_ids.back()]->chunk_index,
                 chunk_row = map_valley[valleys_ids.back()]->position;
         for (int j = chunk_index * chunk_width + chunk_width; j < img_width; j++) {
@@ -563,7 +622,7 @@ bool Region::update_region(Mat &binary_image, int region_id) {
     int start = min(min_region_row, max_region_row), end = max(min_region_row, max_region_row);
     region = Mat::ones(end - start, binary_image.cols, CV_8U) * 255;
 
-    // Fill region.
+    // Fill region
     for (int c = 0; c < binary_image.cols; c++) {
         int start = ((top == nullptr) ? 0 : top->points[c].x);
         int end = ((bottom == nullptr) ? binary_image.rows - 1 : bottom->points[c].x);
@@ -638,7 +697,7 @@ double Region::bi_variate_gaussian_density(Mat point) {
     transpose(point, point_transpose);
 
     Mat ret = ((point * this->covariance.inv() * point_transpose));
-    ret *= sqrt(determinant(this->covariance * 2 * M_PI));
+    ret *= sqrt(determinant(this->covariance * 2 * CV_PI));
 
     return ret.at<float>(0, 0);
 }

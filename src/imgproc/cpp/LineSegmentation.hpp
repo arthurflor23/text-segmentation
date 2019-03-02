@@ -3,13 +3,6 @@
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-#define CHUNKS_NUMBER 10
-#define CHUNKS_TO_BE_PROCESSED 5
-
 typedef int valley_id;
 
 using namespace cv;
@@ -33,7 +26,7 @@ class Line {
         int max_row_position;
         vector<Point> points;
 
-        void generate_initial_points(int chunk_width, int img_width, map<int, Valley *> map_valley);
+        void generate_initial_points(int chunks_number, int chunk_width, int img_width, map<int, Valley *> map_valley);
         static bool comp_min_row_position(const Line *a, const Line *b);
 };
 
@@ -110,7 +103,7 @@ class Chunk {
 
 class LineSegmentation {
     public:
-        LineSegmentation();
+        LineSegmentation(int chunks_number, int chunks_process);
 
         Mat binary_img;
         vector<Rect> contours;
@@ -124,10 +117,15 @@ class LineSegmentation {
 
         void generate_regions();
         void repair_lines();
+        void deslant(Mat image, Mat &output, int bgcolor);
+        
         void get_regions(vector<Mat> &output);
         void generate_image_with_lines();
 
     private:
+        int CHUNKS_NUMBER;
+        int CHUNKS_TO_BE_PROCESSED;
+
         bool not_primes_arr[100007];
         vector<int> primes;
 

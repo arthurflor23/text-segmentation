@@ -8,7 +8,7 @@ using namespace std;
 class Binarization {
     public:
         Binarization();
-        void binarize(Mat image, Mat &output, bool illumination, int option);
+        void binarize(Mat image, Mat &output, int illumination, int option);
 
         Mat grayscale;
         Mat histogram;
@@ -31,7 +31,7 @@ class Binarization {
 
         void light_distribution();
         void otsu(Mat grayscale, Mat &output);
-        void local_thresholding(Mat im, Mat output, int option, int winx, int winy, double k, double dR);
+        void local_thresholding(Mat im, Mat &output, int option, int winx, int winy, double k, double dR);
 
         double calc_local_stats(Mat &im, Mat &map_m, Mat &map_s, int winx, int winy);
         Mat scale(Mat image);
