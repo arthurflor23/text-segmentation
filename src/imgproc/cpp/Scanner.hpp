@@ -8,7 +8,6 @@ using namespace std;
 class Scanner {
     public:
         Scanner();
-        bool croped;
         void process(Mat image, Mat &output, string data_base, string extension);
 
     private:

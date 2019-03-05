@@ -1,8 +1,6 @@
 #include "Scanner.hpp"
 
-Scanner::Scanner() {
-	this->croped = false;
-};
+Scanner::Scanner() {};
 
 bool compareContourAreas(vector<Point> contour1, vector<Point> contour2){
 	double i = fabs(contourArea(Mat(contour1)));
@@ -153,7 +151,6 @@ void Scanner::process(Mat image, Mat &output, string data_base, string extension
 				approx[i][j] *= ratio;
 
 			fourPointTransform(orig, output, approx[i]);
-			this->croped = true;
 		}
 	}
 }	

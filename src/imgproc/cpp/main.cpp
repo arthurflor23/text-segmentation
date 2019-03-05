@@ -32,17 +32,12 @@ int main(int argc, char *argv[]) {
     // START Step 1.1: resize and definitions //
     int new_w = 1024;
     int new_h = ((new_w * image.rows) / image.cols);
-    resize(image, image, Size(new_w, new_h));
-
-    int chunks_number, chunks_process;
+    int chunks_number = 20, chunks_process = 5;
     
-    if (scanner->croped){
+    if (image.cols < new_w)
         chunks_number = 12;
-        chunks_process = 5;
-    } else {
-        chunks_number = 20;
-        chunks_process = 5;
-    }
+
+    resize(image, image, Size(new_w, new_h));
     // END Step 1.1 //
 
 
