@@ -1,6 +1,7 @@
 #include "Binarization.hpp"
 #include "Scanner.hpp"
 #include "LineSegmentation.hpp"
+#include "WordSegmentation.hpp"
 #include <opencv2/core/utils/filesystem.hpp>
 
 using namespace cv::utils::fs;
@@ -19,13 +20,13 @@ int main(int argc, char *argv[]) {
 
     Mat image = imread(src_path);
     createDirectory(out_path);
-    imwrite(src_base + extension, image);
+    // imwrite(src_base + extension, image);
 
 
     // START Step 1: crop //
     Scanner *scanner = new Scanner();
-    scanner->process(image, image, src_base, extension);
-    imwrite(src_base + "_1_crop" + extension, image);
+    scanner->process(image, image);
+    // imwrite(src_base + "_1_crop" + extension, image);
     // END Step 1 //
 
 
@@ -49,21 +50,34 @@ int main(int argc, char *argv[]) {
 
 
     // START Step 3: line segmentation //
-    LineSegmentation *line = new LineSegmentation(chunks_number, chunks_process);
-    vector<cv::Mat> lines;
-    line->segment(image, lines, src_base, extension);
-    
     createDirectory(lines_path);
-    for (int i=0; i< lines.size(); i++) {
-        string number = to_string((i+1)*1e-6).substr(5);
-        imwrite(join(lines_path, "line_" + number + extension), lines[i]);
-    }
+    LineSegmentation *line = new LineSegmentation(src_base, extension);
+    vector<Mat> lines;
+    line->segment(image, lines, chunks_number, chunks_process);
     // END Step 3 //
 
 
     // START Step 4: word segmentation //
-    // createDirectory(words_path);
+    createDirectory(words_path);
+    WordSegmentation *word = new WordSegmentation(src_base, extension);
+    word->set_kernel(21, 11, 7, 0);
 
+    for (int i=0; i<lines.size(); i++) {
+        string l_number = "line_" + to_string((i+1)*1e-6).substr(5);
+        imwrite(join(lines_path,  l_number + extension), lines[i]);
+
+        string word_path = join(words_path, l_number);
+        createDirectory(word_path);
+
+        vector<Mat> words;
+        word->segment(lines[i], words);
+        imwrite(join(word_path, "summary" + extension), words[0]);
+
+        for (int j=1; j<words.size(); j++) {
+            string w_number = "word_" + to_string((j)*1e-6).substr(5);
+            imwrite(join(word_path, w_number + extension), words[j]);
+        }
+    }
     // END Step 4 //
 
 

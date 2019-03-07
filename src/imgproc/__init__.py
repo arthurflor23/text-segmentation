@@ -20,8 +20,9 @@ class PreProcess():
 		self.binarize_cpp = os.path.join(self.path, "Binarization.cpp")
 		self.scanner_cpp = os.path.join(self.path, "Scanner.cpp")
 		self.line_seg_cpp = os.path.join(self.path, "LineSegmentation.cpp")
+		self.word_seg_cpp = os.path.join(self.path, "WordSegmentation.cpp")
 
-		self.compile_cmd = "g++ %s %s %s %s -o %s `pkg-config --cflags --libs opencv4`"
+		self.compile_cmd = "g++ %s %s %s %s %s -o %s `pkg-config --cflags --libs opencv4`"
 
 		### use light distribution: False = 0, True = 1 ###
 		self.light_parameter = "1"
@@ -32,7 +33,7 @@ class PreProcess():
 
 	def compile(self, cpp_compile):
 		if cpp_compile or not os.path.exists(self.out):
-			cmd = (self.compile_cmd % (self.main, self.binarize_cpp, self.scanner_cpp, self.line_seg_cpp, self.out))
+			cmd = (self.compile_cmd % (self.main, self.binarize_cpp, self.scanner_cpp, self.line_seg_cpp, self.word_seg_cpp, self.out))
 
 			if os.system(cmd) != 0:
 				print("Preprocess compile error")

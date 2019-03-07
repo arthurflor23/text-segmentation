@@ -8,7 +8,7 @@ using namespace std;
 class Scanner {
     public:
         Scanner();
-        void process(Mat image, Mat &output, string data_base, string extension);
+        void process(Mat image, Mat &output);
 
     private:
         void preProcess(Mat input, Mat &output);

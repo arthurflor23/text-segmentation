@@ -97,7 +97,7 @@ void Scanner::preProcess(Mat input, Mat &output){
 	Canny(imageBlurred, output, 50, 60, 3, true);
 }
 
-void Scanner::process(Mat image, Mat &output, string data_base, string extension){
+void Scanner::process(Mat image, Mat &output){
 	Mat orig = image.clone();
 
 	double ratio = image.rows / 500.0;

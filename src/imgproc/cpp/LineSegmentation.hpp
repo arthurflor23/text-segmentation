@@ -103,14 +103,14 @@ class Chunk {
 
 class LineSegmentation {
     public:
-        LineSegmentation(int chunks_number, int chunks_process);
+        LineSegmentation(string src_base, string extension);
 
         Mat binary_img;
         vector<Rect> contours;
         Mat contours_drawing;
         Mat lines_drawing;
 
-        void segment(Mat input, vector<Mat> &output, string data_base, string extension);
+        void segment(Mat input, vector<Mat> &output, int chunks_number, int chunks_process);
         void find_contours();
         void generate_chunks();
         void get_initial_lines();
@@ -123,8 +123,11 @@ class LineSegmentation {
         void generate_image_with_lines();
 
     private:
-        int CHUNKS_NUMBER;
-        int CHUNKS_TO_BE_PROCESSED;
+        string src_base;
+        string extension;
+
+        int chunks_number;
+        int chunks_to_process;
 
         bool not_primes_arr[100007];
         vector<int> primes;

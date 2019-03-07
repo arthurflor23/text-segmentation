@@ -1,17 +1,20 @@
 #include "LineSegmentation.hpp"
 
-LineSegmentation::LineSegmentation(int chunks_number, int chunks_process) {
-    this->CHUNKS_NUMBER = chunks_number;
-    this->CHUNKS_TO_BE_PROCESSED = chunks_process;
+LineSegmentation::LineSegmentation(string src_base, string extension) {
+    this->src_base = src_base;
+    this->extension = extension;
     sieve();
 };
 
-void LineSegmentation::segment(Mat input, vector<Mat> &output, string data_base, string extension) {
+void LineSegmentation::segment(Mat input, vector<Mat> &output, int chunks_number, int chunks_process) {
     this->binary_img = input;
+
+    this->chunks_number = chunks_number;
+    this->chunks_to_process = chunks_process;
 
     // Find letters contours
     find_contours();
-    // imwrite(data_base + "_3_contours" + extension, this->contours_drawing);
+    // imwrite(this->src_base + "_3_contours" + this->extension, this->contours_drawing);
 
     // Divide image into vertical chunks
     generate_chunks();
@@ -28,7 +31,7 @@ void LineSegmentation::segment(Mat input, vector<Mat> &output, string data_base,
     generate_regions();
 
     generate_image_with_lines();
-    imwrite(data_base + "_3_lines" + extension, this->lines_drawing);
+    imwrite(this->src_base + "_3_lines" + this->extension, this->lines_drawing);
 
     get_regions(output);
 
@@ -63,8 +66,8 @@ void LineSegmentation::find_contours() {
     findContours(this->binary_img, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE, Point(0, 0));
 
     // Initializing rectangular and poly vectors
-    vector<vector<Point> > contours_poly(contours.size());
-    vector<Rect> bound_rect(contours.size() - 1);
+    vector<vector<Point>> contours_poly(contours.size());
+    vector<Rect> bound_rect(contours.size()-1);
 
     // Getting rectangular boundaries from contours
     for (size_t i = 0; i < contours.size() - 1; i++) {
@@ -112,9 +115,9 @@ void LineSegmentation::find_contours() {
 
 void LineSegmentation::generate_chunks() {
     int width = binary_img.cols;
-    chunk_width = width / CHUNKS_NUMBER;
+    chunk_width = width / chunks_number;
 
-    for (int i_chunk = 0, start_pixel = 0; i_chunk < CHUNKS_NUMBER; ++i_chunk) {
+    for (int i_chunk = 0, start_pixel = 0; i_chunk < chunks_number; ++i_chunk) {
         Chunk *c = new Chunk(
             i_chunk, 
             start_pixel, 
@@ -129,8 +132,8 @@ void LineSegmentation::generate_chunks() {
 void LineSegmentation::get_initial_lines() {
     int number_of_heights = 0, valleys_min_abs_dist = 0;
 
-    // Get the histogram of the first CHUNKS_TO_BE_PROCESSED and get the overall average line height
-    for (int i = 0; i < CHUNKS_TO_BE_PROCESSED; i++) {
+    // Get the histogram of the first chunks_to_process and get the overall average line height
+    for (int i = 0; i < chunks_to_process; i++) {
         int avg_height = this->chunks[i]->find_peaks_valleys(map_valley);
 
         if (avg_height) number_of_heights++;
@@ -139,8 +142,8 @@ void LineSegmentation::get_initial_lines() {
     valleys_min_abs_dist /= number_of_heights;
     this->predicted_line_height = valleys_min_abs_dist;
 
-    // Start form the CHUNKS_TO_BE_PROCESSED chunk
-    for (int i = CHUNKS_TO_BE_PROCESSED - 1; i >= 0; i--) {
+    // Start form the chunks_to_process chunk
+    for (int i = chunks_to_process - 1; i >= 0; i--) {
         if (chunks[i]->valleys.empty()) continue;
 
         // Connect each valley with the nearest ones in the left chunks
@@ -152,7 +155,7 @@ void LineSegmentation::get_initial_lines() {
 
             Line *new_line = new Line(valley->valley_id);
             new_line = connect_valleys(i - 1, valley, new_line, valleys_min_abs_dist);
-            new_line->generate_initial_points(CHUNKS_NUMBER, chunk_width, binary_img.cols, map_valley);
+            new_line->generate_initial_points(chunks_number, chunk_width, binary_img.cols, map_valley);
 
             if (new_line->valleys_ids.size() > 1)
                 this->initial_lines.push_back(new_line);
