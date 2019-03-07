@@ -11,11 +11,11 @@ void Binarization::binarize(Mat image, Mat &output, int illumination, int option
 	cvtColor(image, this->grayscale, COLOR_BGR2GRAY);
 	output = this->grayscale.clone();
 
+    if (illumination) light_distribution();
+
     int winy = (int) (2.0 * this->grayscale.rows-1)/3;
     int winx = (int) this->grayscale.cols-1 < winy ? this->grayscale.cols-1 : winy;
-
     if (winx > 127) winx = winy = 127;
-    if (illumination) light_distribution();
 
     if (option < 3){
         local_thresholding(this->grayscale, output, option, winx, winy, 0.1, 128);
