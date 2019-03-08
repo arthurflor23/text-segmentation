@@ -10,12 +10,11 @@ class WordSegmentation {
         WordSegmentation(string src_base, string extension);
 
         void segment(Mat line, vector<Mat> &words);
-        void set_kernel(int kernel_size, int sigma, int theta, int min_area);
+        void set_kernel(int kernel_size, int sigma, int theta);
 
     private:
         string src_base; 
         string extension;
 
         Mat kernel;
-        int min_area;
 };

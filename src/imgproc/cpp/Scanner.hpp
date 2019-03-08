@@ -9,6 +9,7 @@ class Scanner {
     public:
         Scanner();
         void process(Mat image, Mat &output);
+	    bool cropped;
 
     private:
         void preProcess(Mat input, Mat &output);

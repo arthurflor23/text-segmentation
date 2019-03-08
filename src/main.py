@@ -28,9 +28,8 @@ def main():
 	pool.join()
 
 
-def foo(image, out, pp):
-	im = Image(image, out)
-	pp.execute(im.src, im.out, im.name, im.ext)
+def foo(im, out, pp):
+	pp.execute(Image(im, out))
 
 
 if __name__ == '__main__':

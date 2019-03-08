@@ -20,23 +20,22 @@ int main(int argc, char *argv[]) {
 
     Mat image = imread(src_path);
     createDirectory(out_path);
-    // imwrite(src_base + extension, image);
+    imwrite(src_base + extension, image);
 
 
     // START Step 1: crop //
     Scanner *scanner = new Scanner();
     scanner->process(image, image);
-    // imwrite(src_base + "_1_crop" + extension, image);
+    imwrite(src_base + "_1_crop" + extension, image);
     // END Step 1 //
 
 
     // START Step 1.1: resize and definitions //
     int new_w = 1024;
     int new_h = ((new_w * image.rows) / image.cols);
-    int chunks_number = 20, chunks_process = 5;
-    
-    if (image.cols < new_w)
-        chunks_number = 12;
+
+    int chunks_number = 8;
+    int chunks_process = 4;
 
     resize(image, image, Size(new_w, new_h));
     // END Step 1.1 //
@@ -60,7 +59,7 @@ int main(int argc, char *argv[]) {
     // START Step 4: word segmentation //
     createDirectory(words_path);
     WordSegmentation *word = new WordSegmentation(src_base, extension);
-    word->set_kernel(21, 11, 7, 0);
+    word->set_kernel(11, 11, 7);
 
     for (int i=0; i<lines.size(); i++) {
         string l_number = "line_" + to_string((i+1)*1e-6).substr(5);
@@ -71,7 +70,7 @@ int main(int argc, char *argv[]) {
 
         vector<Mat> words;
         word->segment(lines[i], words);
-        imwrite(join(word_path, "summary" + extension), words[0]);
+        imwrite(join(words_path, l_number + "_summary" + extension), words[0]);
 
         for (int j=1; j<words.size(); j++) {
             string w_number = "word_" + to_string((j)*1e-6).substr(5);

@@ -1,6 +1,8 @@
 #include "Scanner.hpp"
 
-Scanner::Scanner() {};
+Scanner::Scanner() {
+	this->cropped = false;
+};
 
 bool compareContourAreas(vector<Point> contour1, vector<Point> contour2){
 	double i = fabs(contourArea(Mat(contour1)));
@@ -103,13 +105,15 @@ void Scanner::process(Mat image, Mat &output){
 	double ratio = image.rows / 500.0;
 	resizeToHeight(image, image, 500);
 
-	Mat edged;
+	Mat edged, cache;
 	preProcess(image, edged);
 
 	vector<vector<Point>> contours, shapes;
 	vector<Vec4i> hierarchy;
 	
 	findContours(edged, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
+
+	cache = edged.clone();
 	edged = Mat::zeros(Size(image.cols, image.rows), CV_8UC1);
 
 	vector<vector<Point>> hull(contours.size());
@@ -151,6 +155,34 @@ void Scanner::process(Mat image, Mat &output){
 				approx[i][j] *= ratio;
 
 			fourPointTransform(orig, output, approx[i]);
+			this->cropped = true;
+			return;
 		}
 	}
+
+	// if doesnt identify a object to crop..
+	Mat kernel = getStructuringElement(MORPH_RECT, Size(17,17));
+	dilate(cache, cache, kernel, Point(-1,-1), 5);
+    normalize(cache, cache, 0, 255, NORM_MINMAX, CV_32F);
+
+	int min_x = cache.cols, min_y = cache.rows;
+	int max_x = 0, max_y = 1;
+
+	for (int i=0; i<cache.rows; i++){
+		for (int j=0; j<cache.cols; j++){
+			if (cache.at<float>(i,j) > 0){
+				min_x = j < min_x ? j : min_x;
+				min_y = i < min_y ? i : min_y;
+
+				max_x = j > max_x ? j : max_x;
+				max_y = i > max_y ? i : max_y;
+			}
+		}
+	}
+	min_x *= ratio; min_y *= ratio;
+	max_x *= ratio; max_y *= ratio;
+
+	int width = max_x-min_x;
+	int height = max_y-min_y;
+	orig(Rect(min_x, min_y, width, height)).copyTo(output);
 }	
