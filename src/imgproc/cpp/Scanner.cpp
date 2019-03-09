@@ -56,22 +56,22 @@ void Scanner::orderPoints(vector<Point> inpts, vector<Point> &ordered){
 }
 
 void Scanner::fourPointTransform(Mat src, Mat &dst, vector<Point> pts){
-	vector<Point> ordered_pts;
-	orderPoints(pts, ordered_pts);
+	vector<Point> orderedPts;
+	orderPoints(pts, orderedPts);
 
-	double wa = distance(ordered_pts[2], ordered_pts[3]);
-	double wb = distance(ordered_pts[1], ordered_pts[0]);
+	double wa = distance(orderedPts[2], orderedPts[3]);
+	double wb = distance(orderedPts[1], orderedPts[0]);
 	double mw = max(wa, wb);
 
-	double ha = distance(ordered_pts[1], ordered_pts[2]);
-	double hb = distance(ordered_pts[0], ordered_pts[3]);
+	double ha = distance(orderedPts[1], orderedPts[2]);
+	double hb = distance(orderedPts[0], orderedPts[3]);
 	double mh = max(ha, hb);
 
 	Point2f src_[] ={
-        Point2f(ordered_pts[0].x, ordered_pts[0].y),
-        Point2f(ordered_pts[1].x, ordered_pts[1].y),
-        Point2f(ordered_pts[2].x, ordered_pts[2].y),
-        Point2f(ordered_pts[3].x, ordered_pts[3].y),
+        Point2f(orderedPts[0].x, orderedPts[0].y),
+        Point2f(orderedPts[1].x, orderedPts[1].y),
+        Point2f(orderedPts[2].x, orderedPts[2].y),
+        Point2f(orderedPts[3].x, orderedPts[3].y),
 	};
 
 	Point2f dst_[] ={
@@ -160,29 +160,28 @@ void Scanner::process(Mat image, Mat &output){
 		}
 	}
 
-	// if doesnt identify a object to crop..
 	Mat kernel = getStructuringElement(MORPH_RECT, Size(17,17));
 	dilate(cache, cache, kernel, Point(-1,-1), 5);
     normalize(cache, cache, 0, 255, NORM_MINMAX, CV_32F);
 
-	int min_x = cache.cols, min_y = cache.rows;
-	int max_x = 0, max_y = 1;
+	int minX = cache.cols, minY = cache.rows;
+	int maxX = 0, maxY = 1;
 
 	for (int i=0; i<cache.rows; i++){
 		for (int j=0; j<cache.cols; j++){
 			if (cache.at<float>(i,j) > 0){
-				min_x = j < min_x ? j : min_x;
-				min_y = i < min_y ? i : min_y;
+				minX = j < minX ? j : minX;
+				minY = i < minY ? i : minY;
 
-				max_x = j > max_x ? j : max_x;
-				max_y = i > max_y ? i : max_y;
+				maxX = j > maxX ? j : maxX;
+				maxY = i > maxY ? i : maxY;
 			}
 		}
 	}
-	min_x *= ratio; min_y *= ratio;
-	max_x *= ratio; max_y *= ratio;
+	minX *= ratio; minY *= ratio;
+	maxX *= ratio; maxY *= ratio;
 
-	int width = max_x-min_x;
-	int height = max_y-min_y;
-	orig(Rect(min_x, min_y, width, height)).copyTo(output);
+	int width = maxX-minX;
+	int height = maxY-minY;
+	orig(Rect(minX, minY, width, height)).copyTo(output);
 }	

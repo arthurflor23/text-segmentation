@@ -3,7 +3,7 @@
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
 
-typedef int valley_id;
+typedef int valleyID;
 
 using namespace cv;
 using namespace std;
@@ -14,20 +14,20 @@ class Valley;
 
 class Line {
     public:
-        Line(int initial_valley_id);
+        Line(int initialValleyID);
         friend class LineSegmentation;
         friend class Region;
 
     private:
         Region *above;
         Region *below;
-        vector<valley_id> valleys_ids;
-        int min_row_position;
-        int max_row_position;
+        vector<valleyID> valleysID;
+        int minRowPosition;
+        int maxRowPosition;
         vector<Point> points;
 
-        void generate_initial_points(int chunks_number, int chunk_width, int img_width, map<int, Valley *> map_valley);
-        static bool comp_min_row_position(const Line *a, const Line *b);
+        void generateInitialPoints(int chunksNumber, int chunkWidth, int imgWidth, map<int, Valley *> mapValley);
+        static bool compMinRowPosition(const Line *a, const Line *b);
 };
 
 class Peak {
@@ -45,12 +45,12 @@ class Peak {
 
 class Valley {
     public:
-        Valley(): valley_id(ID++), used(false){}
-        Valley(int c_id, int p): chunk_index(c_id), valley_id(ID++), position(p), used(false){}
+        Valley(): valleyID(ID++), used(false){}
+        Valley(int cID, int p): chunkIndex(cID), valleyID(ID++), position(p), used(false){}
 
         static int ID;
-        int chunk_index;
-        int valley_id;
+        int chunkIndex;
+        int valleyID;
         int position;
         bool used;
         Line *line;
@@ -64,19 +64,19 @@ class Region {
         friend class LineSegmentation;
 
     private:
-        int region_id;
+        int regionID;
         Mat region;
         Line *top;
         Line *bottom;
         int height;
-        int row_offset;
+        int rowOffset;
         Mat covariance;
         Vec2f mean;
 
-        bool update_region(Mat &img, int);
-        void calculate_mean();
-        void calculate_covariance();
-        double bi_variate_gaussian_density(Mat point);
+        bool updateRegion(Mat &img, int);
+        void calculateMean();
+        void calculateCovariance();
+        double biVariateGaussianDensity(Mat point);
 };
 
 class Chunk {
@@ -84,66 +84,65 @@ class Chunk {
         Chunk(int o, int c, int w, Mat i);
         friend class LineSegmentation;
         
-        int find_peaks_valleys(map<int, Valley *> &map_valley);
+        int findPeaksValleys(map<int, Valley *> &mapValley);
 
     private:
         int index;
-        int start_col;
+        int startCol;
         int width;
         Mat img;
         vector<int> histogram;
         vector<Peak> peaks;
         vector<Valley *> valleys;
-        int avg_height;
-        int avg_white_height;
-        int lines_count;
+        int avgHeight;
+        int avgWhiteHeight;
+        int linesCount;
 
-        void calculate_histogram();
+        void calculateHistogram();
 };
 
 class LineSegmentation {
     public:
-        LineSegmentation(string src_base, string extension);
+        LineSegmentation(string srcBase, string extension);
 
-        Mat binary_img;
+        Mat binaryImg;
         vector<Rect> contours;
-        Mat contours_drawing;
-        Mat lines_drawing;
+        Mat contoursDrawing;
+        Mat linesDrawing;
 
-        void segment(Mat input, vector<Mat> &output, int chunks_number, int chunks_process);
-        void find_contours();
-        void generate_chunks();
-        void get_initial_lines();
+        void segment(Mat input, vector<Mat> &output, int chunksNumber, int chunksProcess);
+        void getContours();
+        void generateChunks();
+        void getInitialLines();
 
-        void generate_regions();
-        void repair_lines();
+        void generateRegions();
+        void repairLines();
         void deslant(Mat image, Mat &output, int bgcolor);
         
-        void get_regions(vector<Mat> &output);
-        void generate_image_with_lines();
+        void getRegions(vector<Mat> &output);
+        void generateImageWithLines();
 
     private:
-        string src_base;
+        string srcBase;
         string extension;
 
-        int chunks_number;
-        int chunks_to_process;
+        int chunksNumber;
+        int chunksToProcess;
 
-        bool not_primes_arr[100007];
+        bool notPrimesArr[100007];
         vector<int> primes;
 
-        int chunk_width;
+        int chunkWidth;
         vector<Chunk *> chunks;
-        map<int, Chunk *> chunk_map;
-        map<int, Valley *> map_valley;
-        vector<Line *> initial_lines;
-        vector<Region *> line_regions;
-        int avg_line_height;
-        int predicted_line_height;
+        map<int, Valley *> mapValley;
+        vector<Line *> initialLines;
+        vector<Region *> lineRegions;
+        int avgLineHeight;
+        int predictedLineHeight;
 
         void sieve();
-        void add_primes_to_vector(int, vector<int> &);
+        void addPrimesToVector(int, vector<int> &);
 
-        Line * connect_valleys(int i, Valley *current_valley, Line *line, int valleys_min_abs_dist);
-        bool component_belongs_to_above_region(Line &, Rect &);
+        Line * connectValleys(int i, Valley *currentValley, Line *line, int valleysMinAbsDist);
+        bool componentBelongsToAboveRegion(Line &, Rect &);
 };

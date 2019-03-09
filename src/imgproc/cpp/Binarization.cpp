@@ -11,52 +11,51 @@ void Binarization::binarize(Mat image, Mat &output, int illumination, int option
 	cvtColor(image, this->grayscale, COLOR_BGR2GRAY);
 	output = this->grayscale.clone();
 
-    if (illumination) light_distribution();
+    if (illumination) lightDistribution();
 
     int winy = (int) (2.0 * this->grayscale.rows-1)/3;
     int winx = (int) this->grayscale.cols-1 < winy ? this->grayscale.cols-1 : winy;
     if (winx > 127) winx = winy = 127;
 
     if (option < 3){
-        local_thresholding(this->grayscale, output, option, winx, winy, 0.1, 128);
+        niblackSauvolaWolf(this->grayscale, output, option, winx, winy, 0.1, 128);
     } else {
         otsu(this->grayscale, output);
     }
 }
 
 void Binarization::otsu(Mat grayscale, Mat &output){    
-    Mat smoothed_img;
-    blur(grayscale, smoothed_img, Size(3,3), Point(-1,-1));
-    threshold(smoothed_img, output, 0.0, 255, THRESH_BINARY | THRESH_OTSU);
+    Mat smoothedImg;
+    blur(grayscale, smoothedImg, Size(3,3), Point(-1,-1));
+    threshold(smoothedImg, output, 0.0, 255, THRESH_BINARY | THRESH_OTSU);
 }
 
-void Binarization::local_thresholding(Mat im, Mat &output, int option, int winx, int winy, double k, double dR){
-	double m, s, max_s;
+void Binarization::niblackSauvolaWolf(Mat im, Mat &output, int option, int winx, int winy, double k, double dR){
+	double m, s, maxS;
 	double th = 0;
-	double min_I, max_I;
+	double minI, maxI;
 	int wxh	= winx/2;
 	int wyh	= winy/2;
-	int x_firstth= wxh;
-	int x_lastth = im.cols-wxh-1;
-	int y_lastth = im.rows-wyh-1;
-	int y_firstth = wyh;
+	int xFirstth= wxh;
+	int xLastth = im.cols-wxh-1;
+	int yLastth = im.rows-wyh-1;
+	int yFirstth = wyh;
 
-	Mat map_m = Mat::zeros(im.rows, im.cols, CV_32F);
-	Mat map_s = Mat::zeros(im.rows, im.cols, CV_32F);
-	max_s = calc_local_stats(im, map_m, map_s, winx, winy);
+	Mat mapM = Mat::zeros(im.rows, im.cols, CV_32F);
+	Mat mapS = Mat::zeros(im.rows, im.cols, CV_32F);
+	maxS = calcLocalStats(im, mapM, mapS, winx, winy);
 
-	minMaxLoc(im, &min_I, &max_I);
+	minMaxLoc(im, &minI, &maxI);
 	Mat thsurf(im.rows, im.cols, CV_32F);
 
-	for	(int j=y_firstth; j<=y_lastth; j++){
-		float *th_surf_data = thsurf.ptr<float>(j) + wxh;
-		float *map_m_data = map_m.ptr<float>(j) + wxh;
-		float *map_s_data = map_s.ptr<float>(j) + wxh;
+	for	(int j=yFirstth; j<=yLastth; j++){
+		float *thSurfData = thsurf.ptr<float>(j) + wxh;
+		float *mapMData = mapM.ptr<float>(j) + wxh;
+		float *mapSData = mapS.ptr<float>(j) + wxh;
 
-		// NORMAL, NON-BORDER AREA IN THE MIDDLE OF THE WINDOW:
 		for	(int i=0; i<=im.cols-winx; i++) {
-			m = *map_m_data++;
-			s = *map_s_data++;
+			m = *mapMData++;
+			s = *mapSData++;
 
     		switch (option) {
     			case 0: // NIBLACK
@@ -68,196 +67,186 @@ void Binarization::local_thresholding(Mat im, Mat &output, int option, int winx,
 	    			break;
 
     			case 2: // WOLF
-    				th = m + k * (s/max_s-1) * (m-min_I);
+    				th = m + k * (s/maxS-1) * (m-minI);
     				break;
     		}
-
-			*th_surf_data++ = th;
+			*thSurfData++ = th;
 
     		if (i==0){
-        		// LEFT BORDER
-				float *th_surf_ptr = thsurf.ptr<float>(j);
-        		for (int i=0; i<=x_firstth; ++i)
-					*th_surf_ptr++ = th;
+				float *thSurfPtr = thsurf.ptr<float>(j);
+        		for (int i=0; i<=xFirstth; ++i)
+					*thSurfPtr++ = th;
 
-        		// LEFT-UPPER CORNER
-        		if (j==y_firstth){
-        			for (int u=0; u<y_firstth; ++u){
-						float *th_surf_ptr = thsurf.ptr<float>(u);
-						for (int i=0; i<=x_firstth; ++i)
-        					*th_surf_ptr++ = th;
+        		if (j==yFirstth){
+        			for (int u=0; u<yFirstth; ++u){
+						float *thSurfPtr = thsurf.ptr<float>(u);
+						for (int i=0; i<=xFirstth; ++i)
+        					*thSurfPtr++ = th;
 					}
 				}
 
-        		// LEFT-LOWER CORNER
-        		if (j == y_lastth){
-        			for (int u=y_lastth+1; u<im.rows; ++u){
-						float *th_surf_ptr = thsurf.ptr<float>(u);
+        		if (j == yLastth){
+        			for (int u=yLastth+1; u<im.rows; ++u){
+						float *thSurfPtr = thsurf.ptr<float>(u);
 
-        				for (int i=0; i<=x_firstth; ++i)
-        					*th_surf_ptr++ = th;
+        				for (int i=0; i<=xFirstth; ++i)
+        					*thSurfPtr++ = th;
 					}
 				}
     		}
 
-			// UPPER BORDER
-			if (j==y_firstth)
-				for (int u=0; u<y_firstth; ++u)
+			if (j==yFirstth)
+				for (int u=0; u<yFirstth; ++u)
 					thsurf.fset(i+wxh,u,th);
 
-			// LOWER BORDER
-			if (j==y_lastth)
-				for (int u=y_lastth+1; u<im.rows; ++u)
+			if (j==yLastth)
+				for (int u=yLastth+1; u<im.rows; ++u)
 					thsurf.fset(i+wxh,u,th);
 		}
+		float *thSurfPtr = thsurf.ptr<float>(j) + xLastth;
 
-		// RIGHT BORDER
-		float *th_surf_ptr = thsurf.ptr<float>(j) + x_lastth;
+		for (int i=xLastth; i<im.cols; ++i)
+			*thSurfPtr++ = th;
 
-		for (int i=x_lastth; i<im.cols; ++i)
-			*th_surf_ptr++ = th;
+		if (j==yFirstth){
+			for (int u=0; u<yFirstth; ++u){
+				float *thSurfPtr = thsurf.ptr<float>(u) + xLastth;
 
-  		// RIGHT-UPPER CORNER
-		if (j==y_firstth){
-			for (int u=0; u<y_firstth; ++u){
-				float *th_surf_ptr = thsurf.ptr<float>(u) + x_lastth;
-
-				for (int i=x_lastth; i<im.cols; ++i)
-					*th_surf_ptr++ = th;
+				for (int i=xLastth; i<im.cols; ++i)
+					*thSurfPtr++ = th;
 			}
 		}
 
-		// RIGHT-LOWER CORNER
-		if (j==y_lastth){
-			for (int u=y_lastth+1; u<im.rows; ++u){
-				float *th_surf_ptr = thsurf.ptr<float>(u) + x_lastth;
+		if (j==yLastth){
+			for (int u=yLastth+1; u<im.rows; ++u){
+				float *thSurfPtr = thsurf.ptr<float>(u) + xLastth;
 
-				for (int i=x_lastth; i<im.cols; ++i)
-					*th_surf_ptr++ = th;
+				for (int i=xLastth; i<im.cols; ++i)
+					*thSurfPtr++ = th;
 			}
 		}
 	}
 
 	for	(int y=0; y<im.rows; ++y){
-		unsigned char *im_data = im.ptr<unsigned char>(y);
-		float *th_surf_data = thsurf.ptr<float>(y);
-		unsigned char *output_data = output.ptr<unsigned char>(y);
+		unsigned char *imData = im.ptr<unsigned char>(y);
+		float *thSurfData = thsurf.ptr<float>(y);
+		unsigned char *outputData = output.ptr<unsigned char>(y);
 
 		for	(int x=0; x<im.cols; ++x){
-			*output_data = *im_data >= *th_surf_data ? 255 : 0;
-			im_data++;
-			th_surf_data++;
-			output_data++;
+			*outputData = *imData >= *thSurfData ? 255 : 0;
+			imData++;
+			thSurfData++;
+			outputData++;
 		}
 	}
 }
 
-double Binarization::calc_local_stats(Mat &im, Mat &map_m, Mat &map_s, int winx, int winy){
-    Mat im_sum, im_sum_sq;
-    integral(im, im_sum, im_sum_sq, CV_64F);
+double Binarization::calcLocalStats(Mat &im, Mat &mapM, Mat &mapS, int winx, int winy){
+    Mat imSum, imSumSq;
+    integral(im, imSum, imSumSq, CV_64F);
 
-	double m,s,max_s,sum,sum_sq;
+	double m,s,maxS,sum,sumSq;
 	int wxh	= winx/2;
 	int wyh	= winy/2;
-	int x_firstth= wxh;
-    int y_firstth= wyh;
-	int y_lastth = im.rows-wyh-1;
+	int xFirstth= wxh;
+    int yFirstth= wyh;
+	int yLastth = im.rows-wyh-1;
 	double winarea = winx*winy;
 
-	max_s = 0;
-	for	(int j = y_firstth ; j<=y_lastth; j++){
-		sum = sum_sq = 0;
+	maxS = 0;
+	for	(int j = yFirstth ; j<=yLastth; j++){
+		sum = sumSq = 0;
 
-		double *sum_top_left = im_sum.ptr<double>(j - wyh);
-		double *sum_top_right = sum_top_left + winx;
-		double *sum_bottom_left = im_sum.ptr<double>(j - wyh + winy);
-		double *sum_bottom_right = sum_bottom_left + winx;
+		double *sumTopLeft = imSum.ptr<double>(j - wyh);
+		double *sumTopRight = sumTopLeft + winx;
+		double *sumBottomLeft = imSum.ptr<double>(j - wyh + winy);
+		double *sumBottomRight = sumBottomLeft + winx;
 
-		double *sum_eq_top_left = im_sum_sq.ptr<double>(j - wyh);
-		double *sum_eq_top_right = sum_eq_top_left + winx;
-		double *sum_eq_bottom_left = im_sum_sq.ptr<double>(j - wyh + winy);
-		double *sum_eq_bottom_right = sum_eq_bottom_left + winx;
+		double *sumEqTopLeft = imSumSq.ptr<double>(j - wyh);
+		double *sumEqTopRight = sumEqTopLeft + winx;
+		double *sumEqBottomLeft = imSumSq.ptr<double>(j - wyh + winy);
+		double *sumEqBottomRight = sumEqBottomLeft + winx;
 
-		sum = (*sum_bottom_right + *sum_top_left) - (*sum_top_right + *sum_bottom_left);
-		sum_sq = (*sum_eq_bottom_right + *sum_eq_top_left) - (*sum_eq_top_right + *sum_eq_bottom_left);
+		sum = (*sumBottomRight + *sumTopLeft) - (*sumTopRight + *sumBottomLeft);
+		sumSq = (*sumEqBottomRight + *sumEqTopLeft) - (*sumEqTopRight + *sumEqBottomLeft);
 
 		m  = sum / winarea;
-		s  = sqrt ((sum_sq - m*sum)/winarea);
-		if (s > max_s) max_s = s;
+		s  = sqrt ((sumSq - m*sum)/winarea);
+		if (s > maxS) maxS = s;
 
-		float *map_m_data = map_m.ptr<float>(j) + x_firstth;
-		float *map_s_data = map_s.ptr<float>(j) + x_firstth;
-		*map_m_data++ = m;
-		*map_s_data++ = s;
+		float *mapMData = mapM.ptr<float>(j) + xFirstth;
+		float *mapSData = mapS.ptr<float>(j) + xFirstth;
+		*mapMData++ = m;
+		*mapSData++ = s;
 
-		for	(int i=1 ; i <= im.cols-winx; i++) {
-			sum_top_left++, sum_top_right++, sum_bottom_left++, sum_bottom_right++;
+		for	(int i=1 ; i<=im.cols-winx; i++) {
+			sumTopLeft++, sumTopRight++, sumBottomLeft++, sumBottomRight++;
 
-			sum_eq_top_left++, sum_eq_top_right++, sum_eq_bottom_left++, sum_eq_bottom_right++;
+			sumEqTopLeft++, sumEqTopRight++, sumEqBottomLeft++, sumEqBottomRight++;
 
-			sum = (*sum_bottom_right + *sum_top_left) - (*sum_top_right + *sum_bottom_left);
-			sum_sq = (*sum_eq_bottom_right + *sum_eq_top_left) - (*sum_eq_top_right + *sum_eq_bottom_left);
+			sum = (*sumBottomRight + *sumTopLeft) - (*sumTopRight + *sumBottomLeft);
+			sumSq = (*sumEqBottomRight + *sumEqTopLeft) - (*sumEqTopRight + *sumEqBottomLeft);
 
 			m  = sum / winarea;
-			s  = sqrt ((sum_sq - m*sum)/winarea);
-			if (s > max_s) max_s = s;
+			s  = sqrt ((sumSq - m*sum)/winarea);
+			if (s > maxS) maxS = s;
 
-			*map_m_data++ = m;
-			*map_s_data++ = s;
+			*mapMData++ = m;
+			*mapSData++ = s;
 		}
 	}
-	return max_s;
+	return maxS;
 }
 
-void Binarization::light_distribution(){
-	get_histogram(this->grayscale);
-	get_cei();
-	get_edge();
-	get_tli();
+void Binarization::lightDistribution(){
+	getHistogram(this->grayscale);
+	getCEI();
+	getEdge();
+	getTLI();
 
-    Mat int_img = this->cei.clone();
+    Mat intImg = this->cei.clone();
 
-    for (int y=0; y<int_img.cols; y++){
-        for (int x=0; x<int_img.rows; x++){
+    for (int y=0; y<intImg.cols; y++){
+        for (int x=0; x<intImg.rows; x++){
 
-            if (this->tli_erosion.at<float>(x,y) == 0){
+            if (this->tliErosion.at<float>(x,y) == 0){
                 int head = x, end = x, n;
 
-                while (end < this->tli_erosion.rows && this->tli_erosion.at<float>(end,y) == 0){
+                while (end < this->tliErosion.rows && this->tliErosion.at<float>(end,y) == 0){
                     end++;
                 }
                 end--;
                 n = end - head + 1;
 
                 if (n <= 30){
-                    vector<float> mpv_h, mpv_e;
-                    double min_h, max_h, min_e, max_e;
+                    vector<float> mpvH, mpvE;
+                    double minH, maxH, minE, maxE;
 
                     for (int k=0; k<5; k++){
                         if ((head - k) >= 0)
-                            mpv_h.push_back(this->cei.at<float>(head-k,y));
+                            mpvH.push_back(this->cei.at<float>(head-k,y));
                         if ((end + k) < this->cei.rows)
-                            mpv_e.push_back(this->cei.at<float>(end+k,y));
+                            mpvE.push_back(this->cei.at<float>(end+k,y));
                     }
 
-                    minMaxLoc(mpv_h, &min_h, &max_h);
-                    minMaxLoc(mpv_e, &min_e, &max_e);
+                    minMaxLoc(mpvH, &minH, &maxH);
+                    minMaxLoc(mpvE, &minE, &maxE);
 
                     for (int m=0; m<n; m++)
-                        int_img.at<float>(head+m,y) = max_h + (m+1) * ((max_e-max_h) / n);
+                        intImg.at<float>(head+m,y) = maxH + (m+1) * ((maxE-maxH) / n);
                 }
             }
         }
     }
 
     Mat kernel = Mat::ones(Size(11, 11), CV_32F) * 1/121;
-    filter2D(scale(int_img), this->ldi, CV_32F, kernel);
+    filter2D(scale(intImg), this->ldi, CV_32F, kernel);
 
     this->grayscale = (this->cei/this->ldi) * 260;
 
-    for (int y=0; y<this->tli_erosion.rows; y++){
-        for (int x=0; x<this->tli_erosion.cols; x++){
-            if (this->tli_erosion.at<float>(y,x) != 0)
+    for (int y=0; y<this->tliErosion.rows; y++){
+        for (int x=0; x<this->tliErosion.cols; x++){
+            if (this->tliErosion.at<float>(y,x) != 0)
                 this->grayscale.at<float>(y,x) *= 1.5;
         }
     }
@@ -266,38 +255,37 @@ void Binarization::light_distribution(){
     this->grayscale.convertTo(this->grayscale, CV_8U);
 }
 
-void Binarization::get_histogram(Mat image){
-    vector<Mat> bgr_planes;
-    split(image, bgr_planes);
+void Binarization::getHistogram(Mat image){
+    vector<Mat> bgrPlanes;
+    split(image, bgrPlanes);
 
     int histSize[] = {30};
     float bins[] = {0,300};
     const float *ranges[] = {bins};
 
-    for (int i=0; i<bgr_planes.size(); i++){
-        calcHist(&bgr_planes[i], 1, 0, Mat(), this->histogram, 1, histSize, ranges, true, true);
-    }
+    for (int i=0; i<bgrPlanes.size(); i++)
+        calcHist(&bgrPlanes[i], 1, 0, Mat(), this->histogram, 1, histSize, ranges, true, true);
 
-    get_hr(sqrt(image.rows * image.cols));
+    getHR(sqrt(image.rows * image.cols));
 }
 
-void Binarization::get_hr(float sqrt_hw){
+void Binarization::getHR(float sqrtHW){
     this->hr = 0;
     for (int i=0; i<this->histogram.rows; i++){
-        if (this->histogram.at<float>(i,0) > sqrt_hw){
+        if (this->histogram.at<float>(i,0) > sqrtHW){
             this->hr = (i * 10);
             break;
         }
     }
 }
 
-void Binarization::get_cei(){
+void Binarization::getCEI(){
     Mat cei = (this->grayscale - (this->hr + 50 * 0.4)) * 2;
     normalize(cei, this->cei, 0, 255, NORM_MINMAX, CV_32F);
-    threshold(this->cei, this->cei_bin, 59, 255, THRESH_BINARY_INV);
+    threshold(this->cei, this->ceiBin, 59, 255, THRESH_BINARY_INV);
 }
 
-void Binarization::get_edge(){
+void Binarization::getEdge(){
     float m1[] = {-1,0,1,-2,0,2,-1,0,1};
     float m2[] = {-2,-1,0,-1,0,1,0,1,2};
     float m3[] = {-1,-2,-1,0,0,0,1,2,1};
@@ -321,19 +309,19 @@ void Binarization::get_edge(){
     filter2D(this->grayscale, eg4, CV_32F, kernel4);
     eg4 = abs(eg4);
 
-    this->eg_avg = scale((eg1 + eg2 + eg3 + eg4)/4);
-    threshold(this->eg_avg, this->eg_bin, 30, 255, THRESH_BINARY);
+    this->egAvg = scale((eg1 + eg2 + eg3 + eg4)/4);
+    threshold(this->egAvg, this->egBin, 30, 255, THRESH_BINARY);
 }
 
-void Binarization::get_tli(){
+void Binarization::getTLI(){
     this->tli = Mat::ones(Size(this->grayscale.cols, this->grayscale.rows), CV_32F) * 255;
-    this->tli -= this->eg_bin;
-    this->tli -= this->cei_bin;
+    this->tli -= this->egBin;
+    this->tli -= this->ceiBin;
     threshold(this->tli, this->tli, 0, 255, THRESH_BINARY);
 
     Mat kernel = Mat::ones(Size(3, 3), CV_32F);
-    erode(this->tli, this->tli_erosion, kernel);
-    threshold(this->tli_erosion, this->tli_erosion, 0, 255, THRESH_BINARY);
+    erode(this->tli, this->tliErosion, kernel);
+    threshold(this->tliErosion, this->tliErosion, 0, 255, THRESH_BINARY);
 }
 
 Mat Binarization::scale(Mat image){

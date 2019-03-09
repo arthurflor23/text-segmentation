@@ -1,29 +1,29 @@
 #include "WordSegmentation.hpp"
 
-WordSegmentation::WordSegmentation(string src_base, string extension) {
-    this->src_base = src_base;
+WordSegmentation::WordSegmentation(string srcBase, string extension) {
+    this->srcBase = srcBase;
     this->extension = extension;
 };
 
-bool compare_cords(const Rect &p1, const Rect &p2){
+bool compareCords(const Rect &p1, const Rect &p2){
 	return (p1.area() > 10) && (p2.area() > 10) && (p1.x < p2.x || p1.y < p2.y);
 }
 
-bool compare_x_cord(const Rect &p1, const Rect &p2){
+bool compareXCords(const Rect &p1, const Rect &p2){
 	return (p1.x < p2.x);
 }
 
 void WordSegmentation::segment(Mat line, vector<Mat> &words){
     copyMakeBorder(line, line, 10, 10, 10, 10, BORDER_CONSTANT, 255);
 
-    Mat img_filtered;
-    filter2D(line, img_filtered, CV_8UC1, this->kernel);
-    threshold(img_filtered, img_filtered, 0, 255, THRESH_BINARY | THRESH_OTSU);
+    Mat imgFiltered;
+    filter2D(line, imgFiltered, CV_8UC1, this->kernel);
+    threshold(imgFiltered, imgFiltered, 0, 255, THRESH_BINARY | THRESH_OTSU);
 
 	vector<vector<Point>> contours;
    	vector<Vec4i> hierarchy;
 
-    findContours(img_filtered, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
+    findContours(imgFiltered, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
     Mat edged = Mat::zeros(Size(line.cols, line.rows), CV_8UC1);
     
     for (int i=0; i<contours.size(); i++){
@@ -34,62 +34,62 @@ void WordSegmentation::segment(Mat line, vector<Mat> &words){
     findContours(edged, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);
     
     edged = Mat::zeros(Size(line.cols, line.rows), CV_8UC1);
-    vector<Rect> bound_rect;
+    vector<Rect> boundRect;
 
     for (int i=0; i<contours.size(); i++)
-        bound_rect.push_back(boundingRect(Mat(contours[i])));
-    sort(bound_rect.begin(), bound_rect.end(), compare_x_cord);
+        boundRect.push_back(boundingRect(Mat(contours[i])));
+    sort(boundRect.begin(), boundRect.end(), compareXCords);
 
-    Mat image_color;
-    cvtColor(line, image_color, COLOR_GRAY2BGR);
+    Mat imageColor;
+    cvtColor(line, imageColor, COLOR_GRAY2BGR);
 
-    for (int i=0; i<bound_rect.size(); i++){
-        if (i < bound_rect.size()-1){
-            if (bound_rect[i+1].tl().x >= bound_rect[i].tl().x && 
-                bound_rect[i+1].br().x <= bound_rect[i].br().x
+    for (int i=0; i<boundRect.size(); i++){
+        if (i < boundRect.size()-1){
+            if (boundRect[i+1].tl().x >= boundRect[i].tl().x && 
+                boundRect[i+1].br().x <= boundRect[i].br().x
             ){
-                int min_x = min(bound_rect[i].tl().x, bound_rect[i+1].tl().x);
-                int min_y = min(bound_rect[i].tl().y, bound_rect[i+1].tl().y);
-                int max_y = max(bound_rect[i].br().y, bound_rect[i+1].br().y);
+                int minX = min(boundRect[i].tl().x, boundRect[i+1].tl().x);
+                int minY = min(boundRect[i].tl().y, boundRect[i+1].tl().y);
+                int maxY = max(boundRect[i].br().y, boundRect[i+1].br().y);
 
-                int width = max(bound_rect[i].width, bound_rect[i+1].width);
-                int height = abs(min_y - max_y);
+                int width = max(boundRect[i].width, boundRect[i+1].width);
+                int height = abs(minY - maxY);
 
-                bound_rect[i+1] = Rect(min_x, min_y, width, height);
+                boundRect[i+1] = Rect(minX, minY, width, height);
                 i++;
             }
         }
     }
-    sort(bound_rect.begin(), bound_rect.end(), compare_cords);
+    sort(boundRect.begin(), boundRect.end(), compareCords);
 
-    for (int i=0; i<bound_rect.size(); i++){
+    for (int i=0; i<boundRect.size(); i++){
         Mat cropped;
-        line(bound_rect[i]).copyTo(cropped);
+        line(boundRect[i]).copyTo(cropped);
 
-        rectangle(image_color, bound_rect[i].tl(), bound_rect[i].br(), Vec3b(0,0,255), 2, 8, 0);
+        rectangle(imageColor, boundRect[i].tl(), boundRect[i].br(), Vec3b(0,0,255), 2, 8, 0);
         words.push_back(cropped);
     }
 
-    words.push_back(image_color);
+    words.push_back(imageColor);
     rotate(words.rbegin(), words.rbegin()+1, words.rend());
 }
 
-void WordSegmentation::set_kernel(int kernel_size, int sigma, int theta){
-    Mat kernel = Mat::zeros(Size(kernel_size, kernel_size), CV_32F);
-    float sigma_x = sigma;
-	float sigma_y = sigma * theta;
+void WordSegmentation::setKernel(int kernelSize, int sigma, int theta){
+    Mat kernel = Mat::zeros(Size(kernelSize, kernelSize), CV_32F);
+    float sigmaX = sigma;
+	float sigmaY = sigma * theta;
 
-    for (int i=0; i<kernel_size; i++){
-        for (int j=0; j<kernel_size; j++){
-            float x = i - (kernel_size / 2);
-            float y = j - (kernel_size / 2);
+    for (int i=0; i<kernelSize; i++){
+        for (int j=0; j<kernelSize; j++){
+            float x = i - (kernelSize / 2);
+            float y = j - (kernelSize / 2);
 
-            float exp_term = exp((-pow(x,2) / (2*sigma_x)) - (pow(y,2) / (2*sigma_y)));
+            float termExp = exp((-pow(x,2) / (2*sigmaX)) - (pow(y,2) / (2*sigmaY)));
 
-            float x_term = (pow(x,2) - pow(sigma_x,2)) / (2 * CV_PI * pow(sigma_x,5) * sigma_y);
-            float y_term = (pow(y,2) - pow(sigma_y,2)) / (2 * CV_PI * pow(sigma_y,5) * sigma_x);
+            float termX = (pow(x,2) - pow(sigmaX,2)) / (2 * CV_PI * pow(sigmaX,5) * sigmaY);
+            float termY = (pow(y,2) - pow(sigmaY,2)) / (2 * CV_PI * pow(sigmaY,5) * sigmaX);
 
-            kernel.at<float>(i,j) = (x_term + y_term) * exp_term;
+            kernel.at<float>(i,j) = (termX + termY) * termExp;
         }
     }
 
