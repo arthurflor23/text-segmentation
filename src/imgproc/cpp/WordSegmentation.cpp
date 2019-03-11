@@ -43,22 +43,23 @@ void WordSegmentation::segment(Mat line, vector<Mat> &words){
     Mat imageColor;
     cvtColor(line, imageColor, COLOR_GRAY2BGR);
 
-    for (int i=0; i<boundRect.size(); i++){
-        if (i < boundRect.size()-1){
-            if (boundRect[i+1].tl().x >= boundRect[i].tl().x && 
-                boundRect[i+1].br().x <= boundRect[i].br().x
-            ){
-                int minX = min(boundRect[i].tl().x, boundRect[i+1].tl().x);
-                int minY = min(boundRect[i].tl().y, boundRect[i+1].tl().y);
-                int maxY = max(boundRect[i].br().y, boundRect[i+1].br().y);
+    int i=0;
+    while (i<boundRect.size()-1){
+        if (boundRect[i+1].tl().x >= boundRect[i].tl().x && 
+            boundRect[i+1].br().x <= boundRect[i].br().x
+        ){
+            int minX = min(boundRect[i].tl().x, boundRect[i+1].tl().x);
+            int minY = min(boundRect[i].tl().y, boundRect[i+1].tl().y);
+            int maxY = max(boundRect[i].br().y, boundRect[i+1].br().y);
 
-                int width = max(boundRect[i].width, boundRect[i+1].width);
-                int height = abs(minY - maxY);
+            int width = max(boundRect[i].width, boundRect[i+1].width);
+            int height = abs(minY - maxY);
 
-                boundRect[i+1] = Rect(minX, minY, width, height);
-                i++;
-            }
+            boundRect[i+1] = Rect(minX, minY, width, height);
+            boundRect.erase(boundRect.begin() + i);
+            continue;
         }
+        ++i;
     }
     sort(boundRect.begin(), boundRect.end(), compareCords);
 
