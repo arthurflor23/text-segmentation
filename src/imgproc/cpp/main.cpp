@@ -10,16 +10,13 @@ int main(int argc, char *argv[]) {
 
     string srcPath = argv[1], outPath = argv[2];
     string name = argv[3], extension = argv[4];
-    string srcBase = (outPath + name);
-
-    int illumination = stoi(argv[5]);
-    int thresholdMethod = stoi(argv[6]);
+    string srcBase = join(outPath, name);
 
     string linesPath = join(outPath, "lines");
     string wordsPath = join(outPath, "words");
 
     Mat image = imread(srcPath);
-    createDirectory(outPath);
+    createDirectories(outPath);
     imwrite(srcBase + extension, image);
 
 
@@ -43,7 +40,7 @@ int main(int argc, char *argv[]) {
 
     // START Step 2: binarization //
     Binarization *threshold = new Binarization();
-    threshold->binarize(image, image, illumination, thresholdMethod);
+    threshold->binarize(image, image, 1); // niblack = 0 | sauvola = 1 | wolf = 2 | otsu = 3
     imwrite(srcBase + "_2_binary" + extension, image);
     // END Step 2 //
 

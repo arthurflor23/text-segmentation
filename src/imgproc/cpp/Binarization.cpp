@@ -7,30 +7,26 @@
 
 Binarization::Binarization() {};
 
-void Binarization::binarize(Mat image, Mat &output, int illumination, int option){
+void Binarization::binarize(Mat image, Mat &output, int option){
 	cvtColor(image, this->grayscale, COLOR_BGR2GRAY);
-	output = this->grayscale.clone();
-
-    if (illumination) lightDistribution();
+    lightDistribution();
 
     int winy = (int) (2.0 * this->grayscale.rows-1)/3;
     int winx = (int) this->grayscale.cols-1 < winy ? this->grayscale.cols-1 : winy;
     if (winx > 127) winx = winy = 127;
 
-    if (option < 3){
-        niblackSauvolaWolf(this->grayscale, output, option, winx, winy, 0.1, 128);
-    } else {
-        otsu(this->grayscale, output);
-    }
+    thresholdImg(this->grayscale, output, option, winx, winy, 0.1, 128);
 }
 
-void Binarization::otsu(Mat grayscale, Mat &output){    
-    Mat smoothedImg;
-    blur(grayscale, smoothedImg, Size(3,3), Point(-1,-1));
-    threshold(smoothedImg, output, 0.0, 255, THRESH_BINARY | THRESH_OTSU);
-}
+void Binarization::thresholdImg(Mat im, Mat &output, int option, int winx, int winy, double k, double dR){
 
-void Binarization::niblackSauvolaWolf(Mat im, Mat &output, int option, int winx, int winy, double k, double dR){
+	if (option >= 3){
+		Mat smoothedImg;
+		blur(im, smoothedImg, Size(3,3), Point(-1,-1));
+		threshold(smoothedImg, output, 0.0, 255, THRESH_BINARY | THRESH_OTSU);
+		return;
+	}
+
 	double m, s, maxS;
 	double th = 0;
 	double minI, maxI;
@@ -41,6 +37,7 @@ void Binarization::niblackSauvolaWolf(Mat im, Mat &output, int option, int winx,
 	int yLastth = im.rows-wyh-1;
 	int yFirstth = wyh;
 
+	output = im.clone();
 	Mat mapM = Mat::zeros(im.rows, im.cols, CV_32F);
 	Mat mapS = Mat::zeros(im.rows, im.cols, CV_32F);
 	maxS = calcLocalStats(im, mapM, mapS, winx, winy);

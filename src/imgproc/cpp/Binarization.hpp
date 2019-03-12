@@ -8,7 +8,7 @@ using namespace std;
 class Binarization {
     public:
         Binarization();
-        void binarize(Mat image, Mat &output, int illumination, int option);
+        void binarize(Mat image, Mat &output, int option);
 
         Mat grayscale;
         Mat histogram;
@@ -30,8 +30,7 @@ class Binarization {
         void getTLI();
 
         void lightDistribution();
-        void otsu(Mat grayscale, Mat &output);
-        void niblackSauvolaWolf(Mat im, Mat &output, int option, int winx, int winy, double k, double dR);
+        void thresholdImg(Mat im, Mat &output, int option, int winx, int winy, double k, double dR);
 
         double calcLocalStats(Mat &im, Mat &mapM, Mat &mapS, int winx, int winy);
         Mat scale(Mat image);
