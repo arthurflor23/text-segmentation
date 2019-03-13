@@ -12,7 +12,7 @@ class Scanner {
 	    bool cropped;
 
     private:
-        void preProcess(Mat input, Mat &output, int openKSize, int closeKSize);
+        void preProcess(Mat input, Mat &output);
         void fourPointTransform(Mat src, Mat &dst, vector<Point> pts);
         void orderPoints(vector<Point> inpts, vector<Point> &ordered);
 };

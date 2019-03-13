@@ -27,10 +27,13 @@ int main(int argc, char *argv[]) {
     // END Step 1 //
 
 
-    // START Step 1.1: resize //
+    // START Step 1.1: resize and definitions //
     int newW = 1024;
     int newH = ((newW * imageCropped.rows) / imageCropped.cols);
     resize(imageCropped, imageCropped, Size(newW, newH));
+
+    int chunksNumber = 8;
+    int chunksProcess = 4;
     // END Step 1.1 //
 
 
@@ -39,13 +42,6 @@ int main(int argc, char *argv[]) {
     Mat imageBinary;
     threshold->binarize(imageCropped, imageBinary, 1); // niblack = 0 | sauvola = 1 | wolf = 2 | otsu = 3
     // END Step 2 //
-
-
-    // START Step 2.1: line segmentation definitions //
-	copyMakeBorder(imageBinary, imageBinary, 0, 0, 100, 50, BORDER_CONSTANT, 255);
-    int chunksNumber = 10;
-    int chunksProcess = 5;
-    // END Step 2.1 //
 
 
     // START Step 3: line segmentation //
