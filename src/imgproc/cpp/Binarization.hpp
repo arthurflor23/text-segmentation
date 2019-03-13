@@ -10,10 +10,8 @@ class Binarization {
         Binarization();
         void binarize(Mat image, Mat &output, int option);
 
-        Mat grayscale;
-        Mat histogram;
         float hr;
-
+        Mat histogram;
         Mat cei;
         Mat ceiBin;
         Mat egAvg;
@@ -25,11 +23,11 @@ class Binarization {
     private:
         void getHistogram(Mat image);
         void getHR(float sqrtHW);
-        void getCEI();
-        void getEdge();
-        void getTLI();
+        void getCEI(Mat grayscale);
+        void getEdge(Mat grayscale);
+        void getTLI(Mat grayscale);
 
-        void lightDistribution();
+        void lightDistribution(Mat &grayscale);
         void thresholdImg(Mat im, Mat &output, int option, int winx, int winy, double k, double dR);
 
         double calcLocalStats(Mat &im, Mat &mapM, Mat &mapS, int winx, int winy);

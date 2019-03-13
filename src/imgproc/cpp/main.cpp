@@ -8,73 +8,90 @@ using namespace cv::utils::fs;
 
 int main(int argc, char *argv[]) {
 
-    string srcPath = argv[1], outPath = argv[2];
-    string name = argv[3], extension = argv[4];
-    string srcBase = join(outPath, name);
+    string srcPath = argv[1];
+    string ppPath = argv[2];
+    string outPath = argv[3];
+    string logged = argv[4];
 
-    string linesPath = join(outPath, "lines");
-    string wordsPath = join(outPath, "words");
+    String name = outPath.substr(outPath.find_last_of("/\\") + 1);
+    name = name.substr(0, name.find("."));
+    string extension = ".png";
 
     Mat image = imread(srcPath);
-    createDirectories(outPath);
-    imwrite(srcBase + extension, image);
 
 
     // START Step 1: crop //
     Scanner *scanner = new Scanner();
-    scanner->process(image, image);
-    imwrite(srcBase + "_1_crop" + extension, image);
+    Mat imageCropped;
+    scanner->process(image, imageCropped);
     // END Step 1 //
 
 
-    // START Step 1.1: resize and definitions //
+    // START Step 1.1: resize //
     int newW = 1024;
-    int newH = ((newW * image.rows) / image.cols);
-
-    int chunksNumber = 8;
-    int chunksProcess = 4;
-
-    resize(image, image, Size(newW, newH));
+    int newH = ((newW * imageCropped.rows) / imageCropped.cols);
+    resize(imageCropped, imageCropped, Size(newW, newH));
     // END Step 1.1 //
 
 
     // START Step 2: binarization //
     Binarization *threshold = new Binarization();
-    threshold->binarize(image, image, 1); // niblack = 0 | sauvola = 1 | wolf = 2 | otsu = 3
-    imwrite(srcBase + "_2_binary" + extension, image);
+    Mat imageBinary;
+    threshold->binarize(imageCropped, imageBinary, 1); // niblack = 0 | sauvola = 1 | wolf = 2 | otsu = 3
     // END Step 2 //
 
 
+    // START Step 2.1: line segmentation definitions //
+	copyMakeBorder(imageBinary, imageBinary, 0, 0, 100, 50, BORDER_CONSTANT, 255);
+    int chunksNumber = 10;
+    int chunksProcess = 5;
+    // END Step 2.1 //
+
+
     // START Step 3: line segmentation //
-    createDirectory(linesPath);
-    LineSegmentation *line = new LineSegmentation(srcBase, extension);
+    LineSegmentation *line = new LineSegmentation();
     vector<Mat> lines;
-    line->segment(image, lines, chunksNumber, chunksProcess);
+    Mat imageLines = imageBinary.clone();
+    line->segment(imageLines, lines, chunksNumber, chunksProcess);
     // END Step 3 //
 
 
     // START Step 4: word segmentation //
-    createDirectory(wordsPath);
-    WordSegmentation *word = new WordSegmentation(srcBase, extension);
+    WordSegmentation *word = new WordSegmentation();
+    vector<Mat> summary;
     word->setKernel(11, 11, 7);
 
     for (int i=0; i<lines.size(); i++) {
-        string lineNumber = "line_" + to_string((i+1)*1e-6).substr(5);
-        imwrite(join(linesPath,  lineNumber + extension), lines[i]);
-
-        string wordPath = join(wordsPath, lineNumber);
-        createDirectory(wordPath);
+        string lineIndex = to_string((i+1)*1e-6).substr(5);
 
         vector<Mat> words;
         word->segment(lines[i], words);
-        imwrite(join(wordsPath, lineNumber + "_summary" + extension), words[0]);
 
-        for (int j=1; j<words.size(); j++) {
-            string wordNumber = "word_" + to_string((j)*1e-6).substr(5);
-            imwrite(join(wordPath, wordNumber + extension), words[j]);
+        summary.push_back(words[0]);
+        words.erase(words.begin());
+
+        createDirectories(ppPath);
+
+        for (int j=0; j<words.size(); j++) {
+            string wordIndex = lineIndex + "_" + to_string((j+1)*1e-6).substr(5);
+            imwrite(join(ppPath, wordIndex + extension), words[j]);
         }
     }
     // END Step 4 //
+
+
+    if (stoi(logged)){
+        createDirectories(outPath);
+        imwrite(join(outPath, name + extension), image);
+        imwrite(join(outPath, name + "_1_crop" + extension), imageCropped);
+        imwrite(join(outPath, name + "_2_binary" + extension), imageBinary);
+        imwrite(join(outPath, name + "_3_lines" + extension), imageLines);
+
+        for (int i=0; i<summary.size(); i++){
+            string index = "_4_summary_" + to_string((i+1)*1e-6).substr(5);
+            imwrite(join(outPath, name + index + extension), summary[i]);
+        }
+    }
 
 
     return 0;

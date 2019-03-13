@@ -8,14 +8,16 @@
 Binarization::Binarization() {};
 
 void Binarization::binarize(Mat image, Mat &output, int option){
-	cvtColor(image, this->grayscale, COLOR_BGR2GRAY);
-    lightDistribution();
+	Mat grayscale;
+	cvtColor(image, grayscale, COLOR_BGR2GRAY);
 
-    int winy = (int) (2.0 * this->grayscale.rows-1)/3;
-    int winx = (int) this->grayscale.cols-1 < winy ? this->grayscale.cols-1 : winy;
+    lightDistribution(grayscale);
+
+    int winy = (int) (2.0 * grayscale.rows-1)/3;
+    int winx = (int) grayscale.cols-1 < winy ? grayscale.cols-1 : winy;
     if (winx > 127) winx = winy = 127;
 
-    thresholdImg(this->grayscale, output, option, winx, winy, 0.1, 128);
+    thresholdImg(grayscale, output, option, winx, winy, 0.1, 128);
 }
 
 void Binarization::thresholdImg(Mat im, Mat &output, int option, int winx, int winy, double k, double dR){
@@ -195,11 +197,11 @@ double Binarization::calcLocalStats(Mat &im, Mat &mapM, Mat &mapS, int winx, int
 	return maxS;
 }
 
-void Binarization::lightDistribution(){
-	getHistogram(this->grayscale);
-	getCEI();
-	getEdge();
-	getTLI();
+void Binarization::lightDistribution(Mat &grayscale){
+	getHistogram(grayscale);
+	getCEI(grayscale);
+	getEdge(grayscale);
+	getTLI(grayscale);
 
     Mat intImg = this->cei.clone();
 
@@ -239,17 +241,17 @@ void Binarization::lightDistribution(){
     Mat kernel = Mat::ones(Size(11, 11), CV_32F) * 1/121;
     filter2D(scale(intImg), this->ldi, CV_32F, kernel);
 
-    this->grayscale = (this->cei/this->ldi) * 260;
+    grayscale = (this->cei/this->ldi) * 260;
 
     for (int y=0; y<this->tliErosion.rows; y++){
         for (int x=0; x<this->tliErosion.cols; x++){
             if (this->tliErosion.at<float>(y,x) != 0)
-                this->grayscale.at<float>(y,x) *= 1.5;
+                grayscale.at<float>(y,x) *= 1.5;
         }
     }
 
-    GaussianBlur(this->grayscale, this->grayscale, Size(3,3), 2);
-    this->grayscale.convertTo(this->grayscale, CV_8U);
+    GaussianBlur(grayscale, grayscale, Size(3,3), 2);
+    grayscale.convertTo(grayscale, CV_8U);
 }
 
 void Binarization::getHistogram(Mat image){
@@ -276,13 +278,13 @@ void Binarization::getHR(float sqrtHW){
     }
 }
 
-void Binarization::getCEI(){
-    Mat cei = (this->grayscale - (this->hr + 50 * 0.4)) * 2;
+void Binarization::getCEI(Mat grayscale){
+    Mat cei = (grayscale - (this->hr + 50 * 0.4)) * 2;
     normalize(cei, this->cei, 0, 255, NORM_MINMAX, CV_32F);
     threshold(this->cei, this->ceiBin, 59, 255, THRESH_BINARY_INV);
 }
 
-void Binarization::getEdge(){
+void Binarization::getEdge(Mat grayscale){
     float m1[] = {-1,0,1,-2,0,2,-1,0,1};
     float m2[] = {-2,-1,0,-1,0,1,0,1,2};
     float m3[] = {-1,-2,-1,0,0,0,1,2,1};
@@ -294,24 +296,24 @@ void Binarization::getEdge(){
     Mat kernel4(3, 3, CV_32F, m4);
 
     Mat eg1, eg2, eg3, eg4;
-    filter2D(this->grayscale, eg1, CV_32F, kernel1);
+    filter2D(grayscale, eg1, CV_32F, kernel1);
     eg1 = abs(eg1);
 
-    filter2D(this->grayscale, eg2, CV_32F, kernel2);
+    filter2D(grayscale, eg2, CV_32F, kernel2);
     eg2 = abs(eg2);
 
-    filter2D(this->grayscale, eg3, CV_32F, kernel3);
+    filter2D(grayscale, eg3, CV_32F, kernel3);
     eg3 = abs(eg3);
 
-    filter2D(this->grayscale, eg4, CV_32F, kernel4);
+    filter2D(grayscale, eg4, CV_32F, kernel4);
     eg4 = abs(eg4);
 
     this->egAvg = scale((eg1 + eg2 + eg3 + eg4)/4);
     threshold(this->egAvg, this->egBin, 30, 255, THRESH_BINARY);
 }
 
-void Binarization::getTLI(){
-    this->tli = Mat::ones(Size(this->grayscale.cols, this->grayscale.rows), CV_32F) * 255;
+void Binarization::getTLI(Mat grayscale){
+    this->tli = Mat::ones(Size(grayscale.cols, grayscale.rows), CV_32F) * 255;
     this->tli -= this->egBin;
     this->tli -= this->ceiBin;
     threshold(this->tli, this->tli, 0, 255, THRESH_BINARY);

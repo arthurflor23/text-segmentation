@@ -41,7 +41,7 @@ def main():
 	if args.dataset and args.train:
 		print("train model")
 
-	if args.evaluate:
+	if args.dataset and args.evaluate:
 		print("evaluate model")
 
 

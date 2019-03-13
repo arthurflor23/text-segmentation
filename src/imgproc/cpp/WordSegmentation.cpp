@@ -1,16 +1,9 @@
 #include "WordSegmentation.hpp"
 
-WordSegmentation::WordSegmentation(string srcBase, string extension) {
-    this->srcBase = srcBase;
-    this->extension = extension;
-};
+WordSegmentation::WordSegmentation() {};
 
 bool compareCords(const Rect &p1, const Rect &p2){
-	return (p1.area() > 10) && (p2.area() > 10) && (p1.x < p2.x || p1.y < p2.y);
-}
-
-bool compareXCords(const Rect &p1, const Rect &p2){
-	return (p1.x < p2.x);
+	return (p1.area() > 10) && (p2.area() > 10) && (p1.x < p2.x);
 }
 
 void WordSegmentation::segment(Mat line, vector<Mat> &words){
@@ -25,20 +18,19 @@ void WordSegmentation::segment(Mat line, vector<Mat> &words){
 
     findContours(imgFiltered, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
     Mat edged = Mat::zeros(Size(line.cols, line.rows), CV_8UC1);
-    
+
     for (int i=0; i<contours.size(); i++){
         Rect r = boundingRect(Mat(contours[i]));
         if (r.area() < line.rows*line.cols*0.9)
             rectangle(edged, r.tl(), r.br(), 255, 2, 8, 0);
     }
     findContours(edged, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);
-    
     edged = Mat::zeros(Size(line.cols, line.rows), CV_8UC1);
     vector<Rect> boundRect;
 
     for (int i=0; i<contours.size(); i++)
         boundRect.push_back(boundingRect(Mat(contours[i])));
-    sort(boundRect.begin(), boundRect.end(), compareXCords);
+    sort(boundRect.begin(), boundRect.end(), compareCords);
 
     Mat imageColor;
     cvtColor(line, imageColor, COLOR_GRAY2BGR);
@@ -61,7 +53,6 @@ void WordSegmentation::segment(Mat line, vector<Mat> &words){
         }
         ++i;
     }
-    sort(boundRect.begin(), boundRect.end(), compareCords);
 
     for (int i=0; i<boundRect.size(); i++){
         Mat cropped;

@@ -7,7 +7,7 @@ using namespace std;
 
 class WordSegmentation {
     public:
-        WordSegmentation(string srcBase, string extension);
+        WordSegmentation();
 
         void segment(Mat line, vector<Mat> &words);
         void setKernel(int kernelSize, int sigma, int theta);

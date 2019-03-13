@@ -1,32 +1,38 @@
 #include "LineSegmentation.hpp"
 
-LineSegmentation::LineSegmentation(string srcBase, string extension) {
-    this->srcBase = srcBase;
-    this->extension = extension;
+LineSegmentation::LineSegmentation() {
     sieve();
 };
 
-void LineSegmentation::segment(Mat input, vector<Mat> &output, int chunksNumber, int chunksProcess) {
-    this->binaryImg = input;
-
+void LineSegmentation::segment(Mat &input, vector<Mat> &output, int chunksNumber, int chunksProcess) {
+    this->binaryImg = input.clone();
     this->chunksNumber = chunksNumber;
     this->chunksToProcess = chunksProcess;
 
     getContours();
-    // imwrite(this->srcBase + "_3_contours" + this->extension, this->contoursDrawing);
-
     generateChunks();
     getInitialLines();
-    generateImageWithLines();
     generateRegions();
     repairLines();
     generateRegions();
 
-    generateImageWithLines();
-    imwrite(this->srcBase + "_3_lines" + this->extension, this->linesDrawing);
+    cvtColor(input, input, COLOR_GRAY2BGR);
+
+    for (auto line : initialLines) {
+        int lastRow = -1;
+
+        for (auto point : line->points) {
+            input.at<Vec3b>(point.x, point.y) = Vec3b(0,0,255);
+                
+            if (lastRow != -1 && point.x != lastRow) {
+                for (int i=min(lastRow, point.x); i<max(lastRow, point.x); i++)
+                    input.at<Vec3b>(i, point.y) = Vec3b(0,0,255);
+            }
+            lastRow = point.x;
+        }
+    }
 
     getRegions(output);
-
     for(int i=0; i<output.size(); i++)
         deslant(output[i], output[i], 255);
 }
@@ -356,24 +362,6 @@ void LineSegmentation::deslant(Mat image, Mat &output, int bgcolor){
 
 		Result bestResult = *max_element(results.begin(), results.end());
 		warpAffine(image, output, bestResult.transform, bestResult.size, INTER_LINEAR, BORDER_CONSTANT, Scalar(bgcolor));
-    }
-}
-
-void LineSegmentation::generateImageWithLines() {
-    cvtColor(this->binaryImg, this->linesDrawing, COLOR_GRAY2BGR);
-
-    for (auto line : initialLines) {
-        int lastRow = -1;
-
-        for (auto point : line->points) {
-            this->linesDrawing.at<Vec3b>(point.x, point.y) = Vec3b(0,0,255);
-                
-            if (lastRow != -1 && point.x != lastRow) {
-                for (int i=min(lastRow, point.x); i<max(lastRow, point.x); i++)
-                    this->linesDrawing.at<Vec3b>(i, point.y) = Vec3b(0,0,255);
-            }
-            lastRow = point.x;
-        }
     }
 }
 

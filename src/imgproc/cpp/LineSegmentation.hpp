@@ -103,24 +103,22 @@ class Chunk {
 
 class LineSegmentation {
     public:
-        LineSegmentation(string srcBase, string extension);
+        LineSegmentation();
 
         Mat binaryImg;
         vector<Rect> contours;
         Mat contoursDrawing;
         Mat linesDrawing;
 
-        void segment(Mat input, vector<Mat> &output, int chunksNumber, int chunksProcess);
+        void segment(Mat &input, vector<Mat> &output, int chunksNumber, int chunksProcess);
         void getContours();
         void generateChunks();
         void getInitialLines();
+        void getRegions(vector<Mat> &output);
 
         void generateRegions();
         void repairLines();
         void deslant(Mat image, Mat &output, int bgcolor);
-        
-        void getRegions(vector<Mat> &output);
-        void generateImageWithLines();
 
     private:
         string srcBase;
