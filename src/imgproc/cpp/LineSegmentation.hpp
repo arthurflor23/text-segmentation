@@ -140,6 +140,7 @@ class LineSegmentation {
 
         void sieve();
         void addPrimesToVector(int, vector<int> &);
+        void printLines(Mat &inputOutput);
 
         Line * connectValleys(int i, Valley *currentValley, Line *line, int valleysMinAbsDist);
         bool componentBelongsToAboveRegion(Line &, Rect &);

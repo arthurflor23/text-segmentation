@@ -12,27 +12,17 @@ void LineSegmentation::segment(Mat &input, vector<Mat> &output, int chunksNumber
     getContours();
     generateChunks();
     getInitialLines();
-    generateRegions();
-    repairLines();
-    generateRegions();
 
-    cvtColor(input, input, COLOR_GRAY2BGR);
-
-    for (auto line : initialLines) {
-        int lastRow = -1;
-
-        for (auto point : line->points) {
-            input.at<Vec3b>(point.x, point.y) = Vec3b(0,0,255);
-                
-            if (lastRow != -1 && point.x != lastRow) {
-                for (int i=min(lastRow, point.x); i<max(lastRow, point.x); i++)
-                    input.at<Vec3b>(i, point.y) = Vec3b(0,0,255);
-            }
-            lastRow = point.x;
-        }
+    if (this->initialLines.size() > 0){
+        generateRegions();
+        repairLines();
+        generateRegions();
+        printLines(input);
+        getRegions(output);
+    } else {
+        output.push_back(input);
     }
 
-    getRegions(output);
     for(int i=0; i<output.size(); i++)
         deslant(output[i], output[i], 255);
 }
@@ -54,6 +44,24 @@ void LineSegmentation::addPrimesToVector(int n, vector<int> &probPrimes) {
         while (n % primes[i]) {
             n /= primes[i];
             probPrimes[i]++;
+        }
+    }
+}
+
+void LineSegmentation::printLines(Mat &inputOutput) {
+    cvtColor(inputOutput, inputOutput, COLOR_GRAY2BGR);
+
+    for (auto line : initialLines) {
+        int lastRow = -1;
+
+        for (auto point : line->points) {
+            inputOutput.at<Vec3b>(point.x, point.y) = Vec3b(0,0,255);
+
+            if (lastRow != -1 && point.x != lastRow) {
+                for (int i=min(lastRow, point.x); i<max(lastRow, point.x); i++)
+                    inputOutput.at<Vec3b>(i, point.y) = Vec3b(0,0,255);
+            }
+            lastRow = point.x;
         }
     }
 }
