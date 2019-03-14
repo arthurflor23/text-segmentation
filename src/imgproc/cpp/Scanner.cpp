@@ -85,18 +85,21 @@ void Scanner::fourPointTransform(Mat src, Mat &dst, vector<Point> pts){
 	warpPerspective(src, dst, m, Size(mw, mh), BORDER_REPLICATE, INTER_LINEAR);
 }
 
-void Scanner::preProcess(Mat input, Mat &output){
-    Mat imageGrayed;
-	Mat imageOpen, imageClosed, imageBlurred;
+void Scanner::preProcess(Mat input, Mat &output, int openKSize, int closeKSize){
+    Mat image_pp, structuringElmt;
+	cvtColor(input, image_pp, COLOR_BGR2GRAY);
 
-	cvtColor(input, imageGrayed, COLOR_BGR2GRAY);
-	Mat structuringElmt = getStructuringElement(MORPH_ELLIPSE, Size(11,11));
+	if (openKSize > 0){
+		structuringElmt = getStructuringElement(MORPH_ELLIPSE, Size(openKSize,openKSize));
+		morphologyEx(image_pp, image_pp, MORPH_OPEN, structuringElmt);
+	}
+	if (closeKSize > 0){
+		structuringElmt = getStructuringElement(MORPH_ELLIPSE, Size(closeKSize,closeKSize));
+		morphologyEx(image_pp, image_pp, MORPH_CLOSE, structuringElmt);
+	}
 
-	morphologyEx(imageGrayed, imageOpen, MORPH_OPEN, structuringElmt);
-	morphologyEx(imageOpen, imageClosed, MORPH_CLOSE, structuringElmt);
-
-	GaussianBlur(imageClosed, imageBlurred, Size(7,7), 0);
-	Canny(imageBlurred, output, 50, 60, 3, true);
+	GaussianBlur(image_pp, image_pp, Size(7,7), 0);
+	Canny(image_pp, output, 50, 60, 3, true);
 }
 
 void Scanner::process(Mat image, Mat &output){
@@ -106,7 +109,7 @@ void Scanner::process(Mat image, Mat &output){
 	resizeToHeight(image, image, 500);
 
 	Mat edged, cache;
-	preProcess(image, edged);
+	preProcess(image, edged, 11, 11);
 	cache = edged.clone();
 
 	vector<vector<Point>> contours, shapes;
@@ -161,6 +164,8 @@ void Scanner::process(Mat image, Mat &output){
 
 	Mat kernel = getStructuringElement(MORPH_RECT, Size(17,17));
 	dilate(cache, cache, kernel, Point(-1,-1), 5);
+	// preProcess(image, cache, 101, 31);
+
     normalize(cache, cache, 0, 255, NORM_MINMAX, CV_32F);
 
 	int minX = cache.cols, minY = cache.rows;
