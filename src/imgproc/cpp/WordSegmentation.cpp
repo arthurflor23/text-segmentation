@@ -3,7 +3,6 @@
 WordSegmentation::WordSegmentation() {};
 
 bool compareCords(const Rect &p1, const Rect &p2){
-	// return (p1.area() > 10) && (p2.area() > 10) && (p1.x < p2.x);
 	return (p1.x < p2.x);
 }
 

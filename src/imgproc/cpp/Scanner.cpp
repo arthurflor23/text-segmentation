@@ -164,7 +164,11 @@ void Scanner::process(Mat image, Mat &output){
 		}
 	}
 
-	processEdge(image, edgedCache, 101, 31, false);
+	processEdge(image, edgedCache, 11, 9, false);
+
+	Mat kernel = getStructuringElement(MORPH_RECT, Size(21,21));
+	dilate(edgedCache, edgedCache, kernel);
+
     normalize(edgedCache, edgedCache, 0, 255, NORM_MINMAX, CV_32F);
 
 	int minX = edgedCache.cols, minY = edgedCache.rows;

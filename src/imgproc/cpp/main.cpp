@@ -30,7 +30,9 @@ int main(int argc, char *argv[]) {
     // START Step 1.1: resize and definitions //
     int newW = 1024;
     int newH = ((newW * imageCropped.rows) / imageCropped.cols);
-    resize(imageCropped, imageCropped, Size(newW, newH));
+
+    if (imageCropped.cols > newW)
+        resize(imageCropped, imageCropped, Size(newW, newH));
 
     int chunksNumber = 8;
     int chunksProcess = 4;
