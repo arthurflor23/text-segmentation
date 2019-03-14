@@ -16,4 +16,7 @@ class WordSegmentation {
         string srcBase; 
         string extension;
         Mat kernel;
+
+        void printContours(Mat image, vector<vector<Point>> contours, vector<Vec4i> hierarchy, int idx);
+        void processBounds(Mat &image, vector<Rect> &boundRect);
 };

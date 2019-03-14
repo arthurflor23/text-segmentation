@@ -377,17 +377,13 @@ Chunk::Chunk(int i, int c, int w, Mat m): valleys(vector<Valley *>()), peaks(vec
 }
 
 void Chunk::calculateHistogram() {
-    Mat imgClone;
-    medianBlur(this->img, imgClone, 5);
-    this->img = imgClone;
-
     int blackCount = 0, currentHeight = 0, currentWhiteCount = 0, whiteLinesCount = 0;
     vector<int> whiteSpaces;
 
-    for (int i=0; i<imgClone.rows; ++i) {
+    for (int i=0; i<this->img.rows; ++i) {
         blackCount = 0;
-        for (int j=0; j<imgClone.cols; ++j) {
-            if (imgClone.at<uchar>(i, j) == 0) {
+        for (int j=0; j<this->img.cols; ++j) {
+            if (this->img.at<uchar>(i, j) == 0) {
                 blackCount++;
                 this->histogram[i]++;
             }

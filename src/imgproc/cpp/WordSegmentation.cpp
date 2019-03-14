@@ -3,42 +3,48 @@
 WordSegmentation::WordSegmentation() {};
 
 bool compareCords(const Rect &p1, const Rect &p2){
-	return (p1.area() > 10) && (p2.area() > 10) && (p1.x < p2.x);
+	// return (p1.area() > 10) && (p2.area() > 10) && (p1.x < p2.x);
+	return (p1.x < p2.x);
 }
 
-void WordSegmentation::segment(Mat line, vector<Mat> &words){
-    copyMakeBorder(line, line, 10, 10, 10, 10, BORDER_CONSTANT, 255);
-
-    Mat imgFiltered;
-    filter2D(line, imgFiltered, CV_8UC1, this->kernel);
-    threshold(imgFiltered, imgFiltered, 0, 255, THRESH_BINARY | THRESH_OTSU);
-
-	vector<vector<Point>> contours;
-   	vector<Vec4i> hierarchy;
-
-    findContours(imgFiltered, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE);
-    Mat edged = Mat::zeros(Size(line.cols, line.rows), CV_8UC1);
-
-    for (int i=0; i<contours.size(); i++){
-        Rect r = boundingRect(Mat(contours[i]));
-        if (r.area() < line.rows*line.cols*0.9)
-            rectangle(edged, r.tl(), r.br(), 255, 2, 8, 0);
+void WordSegmentation::printContours(Mat image, vector<vector<Point>> contours, vector<Vec4i> hierarchy, int idx){
+    for(int i = idx; i >= 0; i = hierarchy[i][0]){
+        drawContours(image, contours, i, Scalar(255));
+        for(int j=hierarchy[i][2]; j>=0; j=hierarchy[j][0])
+            printContours(image, contours, hierarchy, hierarchy[j][2]);
     }
-    findContours(edged, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);
-    edged = Mat::zeros(Size(line.cols, line.rows), CV_8UC1);
-    vector<Rect> boundRect;
+}
+
+void WordSegmentation::processBounds(Mat &image, vector<Rect> &boundRect){
+    vector<vector<Point>> contours;
+   	vector<Vec4i> hierarchy;
+    Mat edged;
+    int lastNumber = 0;
+
+    while(true){
+        findContours(image, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+        edged = Mat::zeros(Size(image.cols, image.rows), CV_8UC1);
+
+        for (int i=0; i<contours.size(); i++){
+            Rect r = boundingRect(Mat(contours[i]));
+            rectangle(edged, r.tl(), r.br(), 255, 2, 8, 0);
+        }
+        
+        printContours(edged, contours, hierarchy, 0);
+        image = edged;
+
+        if (contours.size() == lastNumber) break;
+        lastNumber = contours.size();
+    }
 
     for (int i=0; i<contours.size(); i++)
         boundRect.push_back(boundingRect(Mat(contours[i])));
     sort(boundRect.begin(), boundRect.end(), compareCords);
 
-    Mat imageColor;
-    cvtColor(line, imageColor, COLOR_GRAY2BGR);
-
     int i=0;
     while (i<boundRect.size()-1){
-        if (boundRect[i+1].tl().x >= boundRect[i].tl().x && 
-            boundRect[i+1].br().x <= boundRect[i].br().x
+        if (boundRect[i].tl().x <= boundRect[i+1].tl().x && 
+            boundRect[i].br().x >= boundRect[i+1].br().x
         ){
             int minX = min(boundRect[i].tl().x, boundRect[i+1].tl().x);
             int minY = min(boundRect[i].tl().y, boundRect[i+1].tl().y);
@@ -53,12 +59,27 @@ void WordSegmentation::segment(Mat line, vector<Mat> &words){
         }
         ++i;
     }
+}
+
+void WordSegmentation::segment(Mat line, vector<Mat> &words){
+    copyMakeBorder(line, line, 10, 10, 10, 10, BORDER_CONSTANT, 255);
+
+    Mat imgFiltered;
+    filter2D(line, imgFiltered, CV_8UC1, this->kernel);
+    threshold(imgFiltered, imgFiltered, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
+
+    vector<Rect> boundRect;
+    processBounds(imgFiltered, boundRect);
+
+    Mat imageColor;
+    cvtColor(line, imageColor, COLOR_GRAY2BGR);
 
     for (int i=0; i<boundRect.size(); i++){
         Mat cropped;
         line(boundRect[i]).copyTo(cropped);
 
         rectangle(imageColor, boundRect[i].tl(), boundRect[i].br(), Vec3b(0,0,255), 2, 8, 0);
+        putText(imageColor, to_string(i+1), boundRect[i].tl(), FONT_HERSHEY_SIMPLEX, 0.5, Vec3b(255,0,0), 2);
         words.push_back(cropped);
     }
 

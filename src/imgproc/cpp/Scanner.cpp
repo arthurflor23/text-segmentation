@@ -85,7 +85,7 @@ void Scanner::fourPointTransform(Mat src, Mat &dst, vector<Point> pts){
 	warpPerspective(src, dst, m, Size(mw, mh), BORDER_REPLICATE, INTER_LINEAR);
 }
 
-void Scanner::preProcess(Mat input, Mat &output, int openKSize, int closeKSize){
+void Scanner::processEdge(Mat input, Mat &output, int openKSize, int closeKSize, bool gaussianBlur){
     Mat image_pp, structuringElmt;
 	cvtColor(input, image_pp, COLOR_BGR2GRAY);
 
@@ -98,7 +98,9 @@ void Scanner::preProcess(Mat input, Mat &output, int openKSize, int closeKSize){
 		morphologyEx(image_pp, image_pp, MORPH_CLOSE, structuringElmt);
 	}
 
-	GaussianBlur(image_pp, image_pp, Size(7,7), 0);
+	if (gaussianBlur){
+		GaussianBlur(image_pp, image_pp, Size(7,7), 0);
+	}
 	Canny(image_pp, output, 50, 60, 3, true);
 }
 
@@ -108,9 +110,9 @@ void Scanner::process(Mat image, Mat &output){
 	double ratio = image.rows / 500.0;
 	resizeToHeight(image, image, 500);
 
-	Mat edged, cache;
-	preProcess(image, edged, 11, 11);
-	cache = edged.clone();
+	Mat edged, edgedCache;
+	processEdge(image, edged, 11, 11, true);
+	edgedCache = edged.clone();
 
 	vector<vector<Point>> contours, shapes;
 	vector<Vec4i> hierarchy;
@@ -162,18 +164,15 @@ void Scanner::process(Mat image, Mat &output){
 		}
 	}
 
-	Mat kernel = getStructuringElement(MORPH_RECT, Size(17,17));
-	dilate(cache, cache, kernel, Point(-1,-1), 5);
-	// preProcess(image, cache, 101, 31);
+	processEdge(image, edgedCache, 101, 31, false);
+    normalize(edgedCache, edgedCache, 0, 255, NORM_MINMAX, CV_32F);
 
-    normalize(cache, cache, 0, 255, NORM_MINMAX, CV_32F);
-
-	int minX = cache.cols, minY = cache.rows;
+	int minX = edgedCache.cols, minY = edgedCache.rows;
 	int maxX = 0, maxY = 1;
 
-	for (int i=0; i<cache.rows; i++){
-		for (int j=0; j<cache.cols; j++){
-			if (cache.at<float>(i,j) > 0){
+	for (int i=0; i<edgedCache.rows; i++){
+		for (int j=0; j<edgedCache.cols; j++){
+			if (edgedCache.at<float>(i,j) > 0){
 				minX = j < minX ? j : minX;
 				minY = i < minY ? i : minY;
 
@@ -194,4 +193,4 @@ void Scanner::process(Mat image, Mat &output){
 	} else {
 		output = orig;
 	}
-}	
+}
