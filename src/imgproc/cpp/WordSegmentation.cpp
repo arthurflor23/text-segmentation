@@ -2,7 +2,7 @@
 
 WordSegmentation::WordSegmentation() {};
 
-bool compareCords(const Rect &p1, const Rect &p2){
+bool compareXCords(const Rect &p1, const Rect &p2){
 	return (p1.x < p2.x);
 }
 
@@ -38,7 +38,7 @@ void WordSegmentation::processBounds(Mat &image, vector<Rect> &boundRect){
 
     for (int i=0; i<contours.size(); i++)
         boundRect.push_back(boundingRect(Mat(contours[i])));
-    sort(boundRect.begin(), boundRect.end(), compareCords);
+    sort(boundRect.begin(), boundRect.end(), compareXCords);
 
     int i=0;
     while (i<boundRect.size()-1){
