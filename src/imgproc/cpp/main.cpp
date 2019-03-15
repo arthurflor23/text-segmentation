@@ -9,16 +9,15 @@ using namespace cv::utils::fs;
 int main(int argc, char *argv[]) {
 
     string srcPath = argv[1];
-    string ppPath = argv[2];
-    string outPath = argv[3];
-    string logged = argv[4];
-
-    String name = outPath.substr(outPath.find_last_of("/\\") + 1);
-    name = name.substr(0, name.find("."));
-    string extension = ".png";
+    string outPath = argv[2];
 
     Mat image = imread(srcPath);
 
+    String name = outPath.substr(outPath.find_last_of("/\\") + 1);
+    name = name.substr(0, name.find("."));
+
+    string extension = ".png";
+    string wordsPath = join(outPath, "words");
 
     // START Step 1: crop //
     Scanner *scanner = new Scanner();
@@ -68,27 +67,25 @@ int main(int argc, char *argv[]) {
         summary.push_back(words[0]);
         words.erase(words.begin());
 
-        createDirectories(ppPath);
+        createDirectories(wordsPath);
 
         for (int j=0; j<words.size(); j++) {
             string wordIndex = lineIndex + "_" + to_string((j+1)*1e-6).substr(5);
-            imwrite(join(ppPath, wordIndex + extension), words[j]);
+            imwrite(join(wordsPath, wordIndex + extension), words[j]);
         }
     }
     // END Step 4 //
 
 
-    if (stoi(logged)){
-        createDirectories(outPath);
-        imwrite(join(outPath, name + extension), image);
-        imwrite(join(outPath, name + "_1_crop" + extension), imageCropped);
-        imwrite(join(outPath, name + "_2_binary" + extension), imageBinary);
-        imwrite(join(outPath, name + "_3_lines" + extension), imageLines);
+    createDirectories(outPath);
+    // imwrite(join(outPath, name + extension), image);
+    imwrite(join(outPath, name + "_1_crop" + extension), imageCropped);
+    imwrite(join(outPath, name + "_2_binary" + extension), imageBinary);
+    imwrite(join(outPath, name + "_3_lines" + extension), imageLines);
 
-        for (int i=0; i<summary.size(); i++){
-            string index = "_4_summary_" + to_string((i+1)*1e-6).substr(5);
-            imwrite(join(outPath, name + index + extension), summary[i]);
-        }
+    for (int i=0; i<summary.size(); i++){
+        string index = "_4_summary_" + to_string((i+1)*1e-6).substr(5);
+        imwrite(join(outPath, name + index + extension), summary[i]);
     }
 
 

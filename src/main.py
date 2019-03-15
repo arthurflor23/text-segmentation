@@ -1,8 +1,10 @@
 from glob import glob as glob
-import environment as env
 import argparse
 import imgproc
 import os
+
+pn_SRC = os.path.join("..", "data")
+pn_OUT = os.path.join("..", "out")
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -22,19 +24,19 @@ def main():
 
 	### data functions ###
 	if args.dataset:
-		images = sorted(glob(os.path.join(env.p_SRC, "*.png"))) ## CHANGE
+		images = sorted(glob(os.path.join(pn_SRC, "*.png"))) ## CHANGE
 	elif args.image:
-		images = sorted(glob(os.path.join(env.p_SRC, args.image)))
+		images = sorted(glob(os.path.join(pn_SRC, args.image)))
 	else:
-		images = sorted(glob(os.path.join(env.p_SRC, "*.png")))
+		images = sorted(glob(os.path.join(pn_SRC, "*.png")))
 
 
 	### preprocess functions ###
-	if args.compile or (args.preprocess and not os.path.exists(env.fn_CPP_OUT)):
+	if args.compile:
 		imgproc.compile()
 
 	if args.preprocess:
-		imgproc.execute(images)
+		imgproc.execute(images, pn_OUT)
 
 
 	### model functions ###
