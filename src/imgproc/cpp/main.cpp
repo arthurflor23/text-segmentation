@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 
 
     // START Step 1.1: resize and definitions //
-    int newW = 1920;
+    int newW = 1280;
     int newH = ((newW * imageCropped.rows) / imageCropped.cols);
 
     if (imageCropped.cols > newW)
