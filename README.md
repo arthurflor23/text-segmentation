@@ -1,4 +1,4 @@
-# Handwritten Text Segmentation
+# Text Segmentation
 
 A simple pre-project in python with the handwritten text segmentation module in c++.
 
