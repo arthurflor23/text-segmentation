@@ -8,7 +8,7 @@ using namespace std;
 class Binarization {
     public:
         Binarization();
-        void binarize(Mat image, Mat &output, int option);
+        void binarize(Mat image, Mat &output, bool light, int option);
 
         float hr;
         Mat histogram;

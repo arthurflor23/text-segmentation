@@ -7,11 +7,13 @@
 
 Binarization::Binarization() {};
 
-void Binarization::binarize(Mat image, Mat &output, int option){
+void Binarization::binarize(Mat image, Mat &output, bool light, int option){
 	Mat grayscale;
 	cvtColor(image, grayscale, COLOR_BGR2GRAY);
 
-    lightDistribution(grayscale);
+	if (light){
+	    lightDistribution(grayscale);
+	} 
 
     int winy = (int) (2.0 * grayscale.rows-1)/3;
     int winx = (int) grayscale.cols-1 < winy ? grayscale.cols-1 : winy;
@@ -22,121 +24,124 @@ void Binarization::binarize(Mat image, Mat &output, int option){
 
 void Binarization::thresholdImg(Mat im, Mat &output, int option, int winx, int winy, double k, double dR){
 
-	if (option >= 3){
+	if (option > 1){
+		double m, s, maxS;
+		double th = 0;
+		double minI, maxI;
+		int wxh	= winx/2;
+		int wyh	= winy/2;
+		int xFirstth= wxh;
+		int xLastth = im.cols-wxh-1;
+		int yLastth = im.rows-wyh-1;
+		int yFirstth = wyh;
+
+		output = im.clone();
+		Mat mapM = Mat::zeros(im.rows, im.cols, CV_32F);
+		Mat mapS = Mat::zeros(im.rows, im.cols, CV_32F);
+		maxS = calcLocalStats(im, mapM, mapS, winx, winy);
+
+		minMaxLoc(im, &minI, &maxI);
+		Mat thsurf(im.rows, im.cols, CV_32F);
+
+		for	(int j=yFirstth; j<=yLastth; j++){
+			float *thSurfData = thsurf.ptr<float>(j) + wxh;
+			float *mapMData = mapM.ptr<float>(j) + wxh;
+			float *mapSData = mapS.ptr<float>(j) + wxh;
+
+			for	(int i=0; i<=im.cols-winx; i++) {
+				m = *mapMData++;
+				s = *mapSData++;
+
+				switch (option) {
+					case 2: // NIBLACK
+						th = m + k*s;
+						break;
+
+					case 3: // SAUVOLA
+						th = m * (1 + k*(s/dR-1));
+						break;
+
+					case 4: // WOLF
+						th = m + k * (s/maxS-1) * (m-minI);
+						break;
+				}
+				*thSurfData++ = th;
+
+				if (i==0){
+					float *thSurfPtr = thsurf.ptr<float>(j);
+					for (int i=0; i<=xFirstth; ++i)
+						*thSurfPtr++ = th;
+
+					if (j==yFirstth){
+						for (int u=0; u<yFirstth; ++u){
+							float *thSurfPtr = thsurf.ptr<float>(u);
+							for (int i=0; i<=xFirstth; ++i)
+								*thSurfPtr++ = th;
+						}
+					}
+
+					if (j == yLastth){
+						for (int u=yLastth+1; u<im.rows; ++u){
+							float *thSurfPtr = thsurf.ptr<float>(u);
+
+							for (int i=0; i<=xFirstth; ++i)
+								*thSurfPtr++ = th;
+						}
+					}
+				}
+
+				if (j==yFirstth)
+					for (int u=0; u<yFirstth; ++u)
+						thsurf.fset(i+wxh,u,th);
+
+				if (j==yLastth)
+					for (int u=yLastth+1; u<im.rows; ++u)
+						thsurf.fset(i+wxh,u,th);
+			}
+			float *thSurfPtr = thsurf.ptr<float>(j) + xLastth;
+
+			for (int i=xLastth; i<im.cols; ++i)
+				*thSurfPtr++ = th;
+
+			if (j==yFirstth){
+				for (int u=0; u<yFirstth; ++u){
+					float *thSurfPtr = thsurf.ptr<float>(u) + xLastth;
+
+					for (int i=xLastth; i<im.cols; ++i)
+						*thSurfPtr++ = th;
+				}
+			}
+
+			if (j==yLastth){
+				for (int u=yLastth+1; u<im.rows; ++u){
+					float *thSurfPtr = thsurf.ptr<float>(u) + xLastth;
+
+					for (int i=xLastth; i<im.cols; ++i)
+						*thSurfPtr++ = th;
+				}
+			}
+		}
+
+		for	(int y=0; y<im.rows; ++y){
+			unsigned char *imData = im.ptr<unsigned char>(y);
+			float *thSurfData = thsurf.ptr<float>(y);
+			unsigned char *outputData = output.ptr<unsigned char>(y);
+
+			for	(int x=0; x<im.cols; ++x){
+				*outputData = *imData >= *thSurfData ? 255 : 0;
+				imData++;
+				thSurfData++;
+				outputData++;
+			}
+		}
+
+	} else if (option == 1){
 		Mat smoothedImg;
 		blur(im, smoothedImg, Size(3,3), Point(-1,-1));
 		threshold(smoothedImg, output, 0.0, 255, THRESH_BINARY | THRESH_OTSU);
-		return;
-	}
 
-	double m, s, maxS;
-	double th = 0;
-	double minI, maxI;
-	int wxh	= winx/2;
-	int wyh	= winy/2;
-	int xFirstth= wxh;
-	int xLastth = im.cols-wxh-1;
-	int yLastth = im.rows-wyh-1;
-	int yFirstth = wyh;
-
-	output = im.clone();
-	Mat mapM = Mat::zeros(im.rows, im.cols, CV_32F);
-	Mat mapS = Mat::zeros(im.rows, im.cols, CV_32F);
-	maxS = calcLocalStats(im, mapM, mapS, winx, winy);
-
-	minMaxLoc(im, &minI, &maxI);
-	Mat thsurf(im.rows, im.cols, CV_32F);
-
-	for	(int j=yFirstth; j<=yLastth; j++){
-		float *thSurfData = thsurf.ptr<float>(j) + wxh;
-		float *mapMData = mapM.ptr<float>(j) + wxh;
-		float *mapSData = mapS.ptr<float>(j) + wxh;
-
-		for	(int i=0; i<=im.cols-winx; i++) {
-			m = *mapMData++;
-			s = *mapSData++;
-
-    		switch (option) {
-    			case 0: // NIBLACK
-    				th = m + k*s;
-    				break;
-
-    			case 1: // SAUVOLA
-	    			th = m * (1 + k*(s/dR-1));
-	    			break;
-
-    			case 2: // WOLF
-    				th = m + k * (s/maxS-1) * (m-minI);
-    				break;
-    		}
-			*thSurfData++ = th;
-
-    		if (i==0){
-				float *thSurfPtr = thsurf.ptr<float>(j);
-        		for (int i=0; i<=xFirstth; ++i)
-					*thSurfPtr++ = th;
-
-        		if (j==yFirstth){
-        			for (int u=0; u<yFirstth; ++u){
-						float *thSurfPtr = thsurf.ptr<float>(u);
-						for (int i=0; i<=xFirstth; ++i)
-        					*thSurfPtr++ = th;
-					}
-				}
-
-        		if (j == yLastth){
-        			for (int u=yLastth+1; u<im.rows; ++u){
-						float *thSurfPtr = thsurf.ptr<float>(u);
-
-        				for (int i=0; i<=xFirstth; ++i)
-        					*thSurfPtr++ = th;
-					}
-				}
-    		}
-
-			if (j==yFirstth)
-				for (int u=0; u<yFirstth; ++u)
-					thsurf.fset(i+wxh,u,th);
-
-			if (j==yLastth)
-				for (int u=yLastth+1; u<im.rows; ++u)
-					thsurf.fset(i+wxh,u,th);
-		}
-		float *thSurfPtr = thsurf.ptr<float>(j) + xLastth;
-
-		for (int i=xLastth; i<im.cols; ++i)
-			*thSurfPtr++ = th;
-
-		if (j==yFirstth){
-			for (int u=0; u<yFirstth; ++u){
-				float *thSurfPtr = thsurf.ptr<float>(u) + xLastth;
-
-				for (int i=xLastth; i<im.cols; ++i)
-					*thSurfPtr++ = th;
-			}
-		}
-
-		if (j==yLastth){
-			for (int u=yLastth+1; u<im.rows; ++u){
-				float *thSurfPtr = thsurf.ptr<float>(u) + xLastth;
-
-				for (int i=xLastth; i<im.cols; ++i)
-					*thSurfPtr++ = th;
-			}
-		}
-	}
-
-	for	(int y=0; y<im.rows; ++y){
-		unsigned char *imData = im.ptr<unsigned char>(y);
-		float *thSurfData = thsurf.ptr<float>(y);
-		unsigned char *outputData = output.ptr<unsigned char>(y);
-
-		for	(int x=0; x<im.cols; ++x){
-			*outputData = *imData >= *thSurfData ? 255 : 0;
-			imData++;
-			thSurfData++;
-			outputData++;
-		}
+	} else {
+		threshold(im, output, 127, 255, THRESH_BINARY);
 	}
 }
 

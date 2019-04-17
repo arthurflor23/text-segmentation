@@ -29,9 +29,7 @@ int main(int argc, char *argv[]) {
     // START Step 1.1: resize and definitions //
     int newW = 1280;
     int newH = ((newW * imageCropped.rows) / imageCropped.cols);
-
-    if (imageCropped.cols > newW)
-        resize(imageCropped, imageCropped, Size(newW, newH));
+    resize(imageCropped, imageCropped, Size(newW, newH));
 
     int chunksNumber = 8;
     int chunksProcess = 4;
@@ -41,7 +39,8 @@ int main(int argc, char *argv[]) {
     // START Step 2: binarization //
     Binarization *threshold = new Binarization();
     Mat imageBinary;
-    threshold->binarize(imageCropped, imageBinary, 1); // niblack = 0 | sauvola = 1 | wolf = 2 | otsu = 3
+    // default = 0 | otsu = 1 | niblack = 2 | sauvola = 3 | wolf = 4 //
+    threshold->binarize(imageCropped, imageBinary, true, 3);
     // END Step 2 //
 
 
