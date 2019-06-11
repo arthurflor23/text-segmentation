@@ -15,7 +15,7 @@ class Image():
 
 def compile():
 	cpp = " ".join(sorted(glob(os.path.join(pn_CPP_FILES, "*.cpp"))))
-	cmd = "g++ %s -o %s `pkg-config --cflags --libs opencv4`" % (cpp, fn_CPP_OUT)
+	cmd = "g++ %s -o %s" % (cpp, fn_CPP_OUT)
 
 	if os.system(cmd) != 0:
 		sys.exit("Preprocess compile error")
