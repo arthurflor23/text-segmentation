@@ -2,9 +2,10 @@
 #include "Scanner.hpp"
 #include "LineSegmentation.hpp"
 #include "WordSegmentation.hpp"
-#include <opencv2/core/utils/filesystem.hpp>
+#include <filesystem>
+#include <string>
 
-using namespace cv::utils::fs;
+namespace fs = std::filesystem;
 
 int main(int argc, char *argv[]) {
 
@@ -17,12 +18,20 @@ int main(int argc, char *argv[]) {
     name = name.substr(0, name.find("."));
 
     string extension = ".png";
-    string wordsPath = join(outPath, "words");
+	fs::path wordsPath = outPath;
+	wordsPath /= "words";
+
+    fs::create_directories(outPath);
 
     // START Step 1: crop //
     Scanner *scanner = new Scanner();
     Mat imageCropped;
     scanner->process(image, imageCropped);
+
+	fs::path saveCrop = outPath;
+	string cropName = name + "_1_crop" + extension;
+	saveCrop /= cropName;
+    imwrite(saveCrop.u8string(), imageCropped);
     // END Step 1 //
 
 
@@ -41,6 +50,11 @@ int main(int argc, char *argv[]) {
     Mat imageBinary;
     // default = 0 | otsu = 1 | niblack = 2 | sauvola = 3 | wolf = 4 //
     threshold->binarize(imageCropped, imageBinary, true, 3);
+
+	fs::path saveBinary = outPath;
+	string binaryName = name + "_2_binary" + extension;
+	saveBinary /= binaryName;
+    imwrite(saveBinary.u8string(), imageBinary);
     // END Step 2 //
 
 
@@ -49,6 +63,11 @@ int main(int argc, char *argv[]) {
     vector<Mat> lines;
     Mat imageLines = imageBinary.clone();
     line->segment(imageLines, lines, chunksNumber, chunksProcess);
+
+	fs::path saveLines = outPath;
+	string linesName = name + "_3_lines" + extension;
+	saveLines /= linesName;
+    imwrite(saveLines.u8string(), imageLines);
     // END Step 3 //
 
 
@@ -56,6 +75,7 @@ int main(int argc, char *argv[]) {
     WordSegmentation *word = new WordSegmentation();
     vector<Mat> summary;
     word->setKernel(11, 11, 7);
+
 
     for (int i=0; i<lines.size(); i++) {
         string lineIndex = to_string((i+1)*1e-6).substr(5);
@@ -66,26 +86,24 @@ int main(int argc, char *argv[]) {
         summary.push_back(words[0]);
         words.erase(words.begin());
 
-        createDirectories(wordsPath);
+		fs::create_directories(wordsPath);
 
         for (int j=0; j<words.size(); j++) {
             string wordIndex = lineIndex + "_" + to_string((j+1)*1e-6).substr(5);
-            imwrite(join(wordsPath, wordIndex + extension), words[j]);
+			fs::path saveWord = wordsPath / (wordIndex + extension);
+            imwrite(saveWord.u8string(), words[j]);
         }
     }
+
+	fs::path saveSeparateLine = outPath;
+
+	for (int i=0; i<summary.size(); i++){
+		string index = "_4_summary_" + to_string((i+1)*1e-6).substr(5);
+		string separateLineName = name + index + extension;
+		fs::path saveLine = saveSeparateLine / separateLineName;
+    	imwrite(saveLine.u8string(), summary[i]);
+	}
     // END Step 4 //
-
-
-    createDirectories(outPath);
-    // imwrite(join(outPath, name + extension), image);
-    imwrite(join(outPath, name + "_1_crop" + extension), imageCropped);
-    imwrite(join(outPath, name + "_2_binary" + extension), imageBinary);
-    imwrite(join(outPath, name + "_3_lines" + extension), imageLines);
-
-    for (int i=0; i<summary.size(); i++){
-        string index = "_4_summary_" + to_string((i+1)*1e-6).substr(5);
-        imwrite(join(outPath, name + index + extension), summary[i]);
-    }
 
 
     return 0;

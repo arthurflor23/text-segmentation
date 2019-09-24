@@ -17,8 +17,16 @@ def compile():
 	cpp = " ".join(sorted(glob(os.path.join(pn_CPP_FILES, "*.cpp"))))
 	cmd = "g++ %s -o %s" % (cpp, fn_CPP_OUT)
 
+	if sys.platform == "linux":
+		cmd += " -std=c++17 -lstdc++fs `pkg-config --cflags --libs opencv`"
+
 	if os.system(cmd) != 0:
-		sys.exit("Preprocess compile error")
+		print("\nError with `opencv` tag.\nCompiling with `opencv4`...\n")
+
+		if os.system(cmd.replace("opencv", "opencv4")) != 0:
+			print("Preprocess compilation error.")
+		else:
+			print("Preprocess compiled successfully.")
 
 
 def execute(images, out):
