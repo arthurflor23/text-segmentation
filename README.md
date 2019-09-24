@@ -5,7 +5,7 @@ A simple pre-project in python with the handwritten text segmentation module in 
 ### Requirements
 
 * Python 3.7
-* openCV 4
+* openCV 3+
 
 ### Run
 
@@ -13,10 +13,23 @@ A simple pre-project in python with the handwritten text segmentation module in 
 python main.py -c -p
 ``
 
+or 
+
+``
+python3 main.py -c -p
+``
+
+
 Specify an image
 
 ``
 python main.py -c -p --image xxx.png
+``
+
+or
+
+``
+python3 main.py -c -p --image xxx.png
 ``
 
 ## Techniques
@@ -49,14 +62,14 @@ A technique for light compensation and sauvola binarization was applied, but oth
 
 **Binary image**
 
-<img src="https://github.com/arthurflor/handwritten-text-segmentation/blob/master/out/003.png/003_2_binary.png" width="512">
+<img src="https://github.com/arthurflor/handwritten-text-segmentation/blob/master/doc/results/003.png/003_2_binary.png" width="680">
 
 **Image lines**
 
-<img src="https://github.com/arthurflor/handwritten-text-segmentation/blob/master/out/003.png/003_3_lines.png" width="512">
+<img src="https://github.com/arthurflor/handwritten-text-segmentation/blob/master/doc/results/003.png/003_3_lines.png" width="680">
 
 **First line/words segment**
 
-<img src="https://github.com/arthurflor/handwritten-text-segmentation/blob/master/out/003.png/003_4_summary_001.png" width="512">
+<img src="https://github.com/arthurflor/handwritten-text-segmentation/blob/master/doc/results/003.png/003_4_summary_001.png" width="680">
 
 
