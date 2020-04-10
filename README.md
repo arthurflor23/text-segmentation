@@ -4,6 +4,7 @@ A simple pre-project in python with the handwritten text segmentation module in 
 
 ### Requirements
 
+* GCC/G++ 8+
 * Python 3.7
 * openCV 3+
 
