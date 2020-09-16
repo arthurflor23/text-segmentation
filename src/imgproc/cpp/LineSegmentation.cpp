@@ -28,9 +28,6 @@ void LineSegmentation::segment(Mat &input, vector<Mat> &output, int chunksNumber
 }
 
 void LineSegmentation::sieve() {
-    int notPrimesArr[100007];
-    std::vector<int> primes;
-
     for (int i=0; i<1e5; ++i) {
         notPrimesArr[i] = 0;
     }
